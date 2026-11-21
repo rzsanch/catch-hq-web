@@ -324,10 +324,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       sb.from('docs').select('data').eq('collection', 'ownerrefresh').eq('id', 'last').maybeSingle()
     ]);
     const r = req && req.data, l = last && last.data;
-    const pending = r && r.status === 'pending';
+    const pending = r && (r.status === 'pending' || r.status === 'working');
     el.innerHTML = `<div class="note">Pulls the latest from Toast and 7shifts into the app: today's and yesterday's sales, drawers, tip-outs, discounts, events, reservations and clock-ins.</div>
       <div class="note">Last refresh: <b>${l && l.at ? esc(fmtWhen(l.at)) : 'not yet'}</b>${l && l.summary ? ' · ' + esc(l.summary) : ''}</div>
-      ${pending ? `<div class="note" style="color:var(--warn)">Requested ${esc(fmtWhen(r.requestedAt))} by ${esc(r.by || 'an owner')}. Claude picks it up at the next check.</div>` : ''}
+      ${pending ? `<div class="note" style="color:var(--warn)">${r.status === 'working' ? 'Refreshing now' : 'Requested'} · ${esc(fmtWhen(r.requestedAt))} by ${esc(r.by || 'an owner')}. ${r.status === 'working' ? 'Usually done in 10–15 minutes.' : 'Claude checks every hour at :11, 6 AM–10 PM.'}</div>` : ''}
+      ${r && r.status === 'needs-signin' ? `<div class="note" style="color:var(--warn)">Last request couldn't run: ${esc(r.message || 'a sign-in is needed on Rick\'s computer')}.</div>` : ''}
       <div class="bagbtns"><button type="button" class="btn" data-refresh-now ${pending ? 'disabled' : ''}>${pending ? 'Refresh requested' : 'Refresh data now'}</button></div>`;
   }
   document.addEventListener('click', async e => {
