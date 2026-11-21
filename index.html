@@ -302,11 +302,31 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     ]);
     const signed = new Set((prof || []).map(p => p.email));
     el.innerHTML = `<div class="note">People on this list can create a password and sign in with their email. Owners see everything and manage this list. GMs see every tab. Inventory sees bar and food counts only.</div>
-      <ul class="guests">${(inv || []).map(p => `<li><div class="gtop"><b>${esc(p.full_name)}</b><span class="owedamt"><span class="note">${esc(p.role === 'gm' ? 'GM' : p.role[0].toUpperCase() + p.role.slice(1))}</span>${p.email === me.email ? '' : `${signed.has(p.email) ? `<button type="button" class="mini" data-team-reset="${esc(p.email)}">Reset password</button>` : ''}<button type="button" class="mini" data-team-remove="${esc(p.email)}">Remove</button>`}</span></div><div class="note">${esc(p.email)} · ${signed.has(p.email) ? 'signed in' : 'not signed in yet'}</div></li>`).join('')}</ul>
+      <ul class="guests">${(inv || []).map(p => `<li><div class="gtop"><b>${esc(p.full_name)}</b><span class="owedamt">${p.email === me.email ? `<span class="note">Owner (you)</span>` : `<select class="mini" data-team-role="${esc(p.email)}" aria-label="Access for ${esc(p.full_name)}">${['owner','gm','inventory'].map(r => `<option value="${r}"${r === p.role ? ' selected' : ''}>${r === 'gm' ? 'GM' : r[0].toUpperCase() + r.slice(1)}</option>`).join('')}</select>`}${p.email === me.email ? '' : `${signed.has(p.email) ? `<button type="button" class="mini" data-team-reset="${esc(p.email)}">Reset password</button>` : ''}<button type="button" class="mini" data-team-remove="${esc(p.email)}">Remove</button>`}</span></div><div class="note">${esc(p.email)} · ${signed.has(p.email) ? 'signed in' : 'not signed in yet'}</div></li>`).join('')}</ul>
       <form class="newform" data-team-add><label>Name<input name="n" required placeholder="e.g. Francisco"></label>
       <label>Email<input name="e" type="email" required placeholder="name@example.com" autocomplete="off"></label>
       <label>Access<select name="r">${Object.entries(ROLE_NAMES).map(([k, v]) => `<option value="${k}"${k === 'inventory' ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
       <div class="bagbtns"><button type="submit" class="btn">Add person</button></div><div class="note" data-team-msg role="status"></div></form>`;
+  }
+  document.addEventListener('change', async e => {
+    const s = e.target.closest('[data-team-role]'); if (!s) return;
+    const em = s.dataset.teamRole, r = s.value;
+    const a1 = await sb.from('staff_invites').update({ role: r }).eq('email', em);
+    const a2 = await sb.from('profiles').update({ role: r }).eq('email', em);
+    if (a1.error || a2.error) alert("Couldn't change their access. Try again.");
+    fillTeam(s.closest('#teamcard'));
+  });
+  async function fillData(el) {
+    el.dataset.filled = '1';
+    const { data, error } = await sb.from('docs').select('collection,id,updated_at').order('updated_at', { ascending: false }).limit(1000);
+    if (error) { el.innerHTML = '<div class="note">Couldn\'t load app data details.</div>'; return; }
+    const days = data.filter(d => d.collection === 'days').map(d => d.id).sort();
+    const last = data[0];
+    const fmt = t => new Date(t).toLocaleString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const NAMES = { days: 'Daily reports', tipbags: 'Tip bag counts', drawercounts: 'Drawer counts', events: 'Events', clockins: 'Clock-in weeks', invparts: 'Bar product list (parts)', finvparts: 'Food product list (parts)', invhistory: 'Bar counts finished', finvhistory: 'Food counts finished', inventries: 'Bar count entries', finventries: 'Food count entries', invpar: 'Bar pars', finvpar: 'Food pars', invorderreq: 'Bar order requests', finvorderreq: 'Food order requests', invmeta: 'Bar count status', finvmeta: 'Food count status', promos: 'Specials summary', promoweeks: 'Specials weeks', reservations: 'Other reservations', invphotos: 'Bar sheet photos', finvphotos: 'Food sheet photos' };
+    const counts = {}; data.forEach(d => { counts[d.collection] = (counts[d.collection] || 0) + 1; });
+    el.innerHTML = `<div class="note">Latest daily report: <b>${days.length ? esc(days[days.length - 1]) : 'none yet'}</b> · Last change: ${last ? esc(fmt(last.updated_at)) : '–'}</div>
+      <div class="scroll"><table><tbody>${Object.entries(counts).sort().map(([c, n]) => `<tr><td>${esc(NAMES[c] || c)}</td><td class="r">${n}</td></tr>`).join('')}</tbody></table></div>`;
   }
   document.addEventListener('submit', async e => {
     const f = e.target.closest('[data-team-add]'); if (!f) return;
@@ -341,6 +361,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   new MutationObserver(() => {
     const t = document.getElementById('teamcard');
     if (t && !t.dataset.filled) fillTeam(t);
+    const dc = document.getElementById('datacard');
+    if (dc && !dc.dataset.filled) fillData(dc);
     const a = document.getElementById('acctcard');
     if (a && !a.dataset.filled) {
       a.dataset.filled = '1';
@@ -508,6 +530,8 @@ nav.tabs a{font-size:.6rem}
 .ctrls{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hh,56px));z-index:4;background:var(--bg);display:grid;gap:8px;width:100%;max-width:900px;margin:0 auto;padding-block:10px 8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
 .ctrls[hidden]{display:none}
 .ctrls .ptitle h1{font-size:1.6rem}
+.admbtn{margin-left:auto;color:inherit;display:grid;place-items:center;width:36px;height:36px;border-radius:8px}
+.admbtn:not([hidden])+.gear{margin-left:4px}
 .gear{margin-left:auto;color:inherit;display:grid;place-items:center;width:36px;height:36px;border-radius:8px}
 .gear:focus-visible{outline:2px solid var(--warn)}
 .toggles{display:grid;gap:2px}
@@ -633,6 +657,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
 <div class="app">
   <header>
     <div class="brand">The Catch HQ<small>The Fishermen's Catch</small></div>
+    <a href="#admin" class="admbtn" aria-label="Admin" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.4-7 10-4-1.6-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></a>
     <a href="#settings" class="gear" aria-label="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
     <div class="daypick" aria-label="Business day" hidden>
       <button id="prev" type="button" aria-label="Previous day">‹</button>
@@ -663,7 +688,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const money = (n, c=2) => n==null||isNaN(n) ? '–' : '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:c,maximumFractionDigits:c});
-  const PANELS = ['glance','drawers','tipouts','discounts','promos','events','reservations','inventory','clockins','settings'];
+  const PANELS = ['glance','drawers','tipouts','discounts','promos','events','reservations','inventory','clockins','settings','admin'];
   const DAILY = ['glance','drawers','tipouts','discounts'];
   const S = { invKind:'bar', inv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'bar',q:'',all:false}, finv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'freezer',q:'',all:false}, dcounts:[], bags:[], editing:null, dayDocs:{}, tipView:'day', tipWk:0, days:[], idx:0, day:null, promos:null, pweeks:[], pw:0, evWhen:'up', resWhen:'up', other:null, events:[], clock:[], wk:0, panel:'glance', ok:false };
 
@@ -911,6 +936,11 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   function applyLook(){ const L=getLook(), r=document.documentElement; if(L.theme==='light'||L.theme==='dark') r.setAttribute('data-theme',L.theme); else if(S.lookTouched) r.removeAttribute('data-theme'); r.setAttribute('data-accent',L.accent||'teal'); }
   function setLook(ch){ const L={...getLook(),...ch}; S.look=L; S.lookTouched=true; try{localStorage.setItem('hq.look',JSON.stringify(L));}catch(e){} applyLook(); if(window.__prefDoc) window.__prefDoc('look').set({...L,updatedAt:new Date().toISOString()}).catch(()=>{}); render(); }
   applyLook();
+  function admin(){
+    return `<div><h1>Admin</h1><div class="sub">Owners only · Rick and Dave</div></div>
+    <section class="card"><h2>Team and passwords</h2><div id="teamcard"></div></section>
+    <section class="card"><h2>App data</h2><div id="datacard"></div></section>
+    <section class="card"><h2>Security</h2><div class="note">Every screen's data is locked on the server by role. Owners see everything plus this Admin page. GMs see every tab. Inventory sees bar and food counts only. Removing someone cuts off their access right away.</div></section>`; }
   function settings(){ const h=getHidden();
     return `<div><h1>Settings</h1><div class="sub">${S.limited?'Appearance and text size':'Choose which tabs show on this phone'}</div></div>
     ${S.limited?`<section class="card"><h2>Your access</h2><div class="note">You have access to Inventory (bar and food). Ask Rick or Dave if you need more.</div></section>`:''}
@@ -922,7 +952,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <div class="swatches" role="radiogroup" aria-label="Accent color">${ACCENTS.map(([k,l,c])=>`<button type="button" role="radio" aria-checked="${(getLook().accent||'teal')===k}" aria-label="${l}" title="${l}" class="sw ${(getLook().accent||'teal')===k?'on':''}" style="background:${c}" data-look-accent="${k}"></button>`).join('')}</div>
       <div class="note">Saved to your account.</div></section>
     <section class="card"><h2>Text size</h2><div class="note">Pinch the page to zoom the numbers and tables. The header, buttons and tab bar stay the same size.</div><div class="zoomrow"><button type="button" class="mini zbtn" data-zoom="-0.05" aria-label="Smaller text">A−</button><b id="zoomval">${Math.round((window.__getZoom?window.__getZoom():1)*100)}%</b><button type="button" class="mini zbtn" data-zoom="0.05" aria-label="Larger text">A+</button><button type="button" class="mini" data-zoom="reset">Reset to 100%</button></div><div class="note">Each tap changes the size by 5%.</div></section>
-    <section class="card"><h2>Account</h2><div id="acctcard"></div></section>${S.limited?'':`<section class="card"><h2>Team access</h2><div id="teamcard"></div></section>`}`; }
+    <section class="card"><h2>Account</h2><div id="acctcard"></div></section>${S.isOwner?`<section class="card"><h2>Admin</h2><div class="note">Team, passwords and app settings are on the Admin page (shield button at the top).</div></section>`:''}`; }
   const INVS={bar:{key:'bar',pfx:'inv',label:'Bar',st:S.inv,areas:[['wi1','Keg Walk In'],['wi2','Walk In 2'],['office','Office'],['cage','Cage'],['bar','Bar']]},
     food:{key:'food',pfx:'finv',label:'Food',st:S.finv,areas:[['freezer','Freezer'],['wi1','Walk In 2'],['pantry','Pantry'],['spice','Kitchen Spice Rack']]}};
   let INV=INVS.bar;
@@ -1043,12 +1073,12 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(S.panel==='tipouts' && S.tipView==='owed'){ m.innerHTML = tipSwitch() + `<div><h1>Tips owed</h1><div class="sub">Every bag that came up short and hasn't been paid, from any week</div></div>` + owedSummary(); return; }
     const dbar = (S.panel==='tipouts'? tipSwitch() : '') + (daily ? pillbar(S.days.map(d=>fmtDay(d)),'data-day',S.idx) : '');
     if(daily){ m.innerHTML = dbar + {glance:()=>glance(S.day),drawers:()=>drawers(S.day),tipouts:()=>tipouts(S.day),discounts:()=>discounts(S.day)}[S.panel](); return; }
-    m.innerHTML = {glance:()=>glance(S.day),drawers:()=>drawers(S.day),tipouts:()=>tipouts(S.day),discounts:()=>discounts(S.day),promos,events,reservations,inventory,clockins,settings}[S.panel]();
+    m.innerHTML = {glance:()=>glance(S.day),drawers:()=>drawers(S.day),tipouts:()=>tipouts(S.day),discounts:()=>discounts(S.day),promos,events,reservations,inventory,clockins,settings,admin}[S.panel]();
   }
   function moveCtrls(){ const m=$('main'), c=$('ctrls'); c.innerHTML=''; const title=[...m.children].find(el=>el.tagName==='DIV'&&el.firstElementChild&&el.firstElementChild.tagName==='H1'); if(title){ title.classList.add('ptitle'); c.appendChild(title); } [...m.children].filter(el=>el.matches('.seg,.wkpick,.invtools,.invtop')).forEach(el=>c.appendChild(el)); c.hidden=!c.children.length; }
   const _render=render; render=function(){ _render(); moveCtrls(); };
   const hdr=document.querySelector('header'); const setHH=()=>document.documentElement.style.setProperty('--hh', hdr.offsetHeight+'px'); setHH(); try{ new ResizeObserver(setHH).observe(hdr); }catch(e){ window.addEventListener('resize',setHH); }
-  function route(){ const h=location.hash.slice(1); const hid=getHidden(); let pnl = PANELS.includes(h)?h:'glance'; if(pnl!=='settings'&&hid.includes(pnl)) pnl=Object.keys(TABNAMES).find(k=>!hid.includes(k))||'settings'; S.panel=pnl; render(); }
+  function route(){ const h=location.hash.slice(1); const hid=getHidden(); let pnl = PANELS.includes(h)?h:'glance'; if(pnl==='admin'&&!S.isOwner) pnl='glance'; if(pnl!=='settings'&&pnl!=='admin'&&hid.includes(pnl)) pnl=Object.keys(TABNAMES).find(k=>!hid.includes(k))||'settings'; S.panel=pnl; render(); }
   applyTabs();
   window.addEventListener('hashchange', route);
   (()=>{ const mainEl=document.getElementById('main'); let z=1, z0=1; try{ z=+localStorage.getItem('hq.zoom')||1; }catch(e){}
@@ -1128,6 +1158,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
           .catch(()=>alertBox("Couldn't finish the count. Check your connection and try again.")); }
       return; }
     const cx=e.target.closest('[data-icancel]'); if(cx){ const v=cx.dataset.icancel; if(v==='ask'){ INV.st.confirmFinish=false; INV.st.confirmCancel=true; render(); } else if(v==='no'){ INV.st.confirmCancel=false; render(); } else { INV.st.confirmCancel=false; window.__db.doc(INV.pfx+'meta/current').set({...INV.st.cur,closed:true,cancelled:true,cancelledAt:new Date().toISOString()}).catch(()=>alertBox("Couldn't cancel the count. Try again.")); } return; }
+    const ad=e.target.closest('.admbtn'); if(ad){ e.preventDefault(); if(S.panel==='admin'){ location.hash=S.prevPanel||'glance'; } else { if(S.panel!=='settings') S.prevPanel=S.panel; location.hash='admin'; } return; }
     const gr=e.target.closest('.gear'); if(gr){ e.preventDefault(); if(S.panel==='settings'){ location.hash=S.prevPanel||'glance'; } else { S.prevPanel=S.panel; location.hash='settings'; } return; }
     const zb=e.target.closest('[data-zoom]'); if(zb){ const v=zb.dataset.zoom; window.__setZoom(v==='reset'?1:(window.__getZoom()+ +v)); return; }
     const lt=e.target.closest('[data-look-theme]'); if(lt){ setLook({theme:lt.dataset.lookTheme}); return; }
@@ -1152,6 +1183,9 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   if(user){ try{ S.full=!!(user.isOwner()||user.canEdit()); }catch(e){ S.full=false; } }
   else { try{ const s=await db.collection('days').limit(1).get(); S.full=s.docs.length>0; }catch(e){ S.full=false; } }
   S.limited=!S.full;
+  try{ S.isOwner=!!(user&&user.isOwner()); }catch(e){ S.isOwner=false; }
+  { const ab=document.querySelector('.admbtn'); if(ab) ab.hidden=!S.isOwner; }
+  if(location.hash==='#admin') route();
   let uid=null; try{ uid=user? await user.id():null; }catch(e){}
   window.__prefDoc=k=> uid? db.collection('data/users/'+uid).doc(k) : db.doc('prefs/'+k);
   const subPref=(k,fn)=>{ let migrated=false; window.__prefDoc(k).onSnapshot(s=>{ if(s.exists) fn(s.data()); else if(S.full && uid && !migrated){ migrated=true; db.doc('prefs/'+k).get().then(o=>{ if(o.exists){ fn(o.data()); window.__prefDoc(k).set(o.data()).catch(()=>{}); } }).catch(()=>{}); } },()=>{}); };
