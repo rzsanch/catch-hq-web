@@ -99,6 +99,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
   // When the phone wakes the app up, refresh everything on screen
   document.addEventListener('visibilitychange', () => { if (!document.hidden) listeners.forEach((_, k) => emit(k)); });
+  // Pull-to-refresh: re-read everything on screen from the database; resolves when done
+  window.__hqRefreshAll = async () => {
+    const fns = []; listeners.forEach(s => s.forEach(fn => fns.push(fn)));
+    await Promise.all(fns.map(fn => Promise.resolve().then(fn).catch(() => {})));
+  };
 
   /* ---------- shared documents ---------- */
   async function rawGet(col, id) {
@@ -754,6 +759,39 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   <div id="lb" class="lb" hidden role="dialog" aria-label="Artwork"><img alt="Event artwork"><span class="note">Tap to close</span></div>
   <div id="ctrls" class="ctrls" hidden></div>
   <main id="main"><div class="empty">Loading the latest day…</div></main>
+  <div id="ptr" class="ptr" aria-live="polite"><span class="ptr-i">↓</span><span class="ptr-t">Pull to refresh</span></div>
+  <style>
+  .ptr{position:fixed;left:0;right:0;height:0;overflow:hidden;z-index:5;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted,#6b7785);font-size:.9rem;font-weight:600;pointer-events:none}
+  .ptr-i{display:inline-block;transition:transform .15s}
+  .ptr.ready .ptr-i{transform:rotate(180deg)}
+  .ptr.busy .ptr-i{animation:ptrspin .8s linear infinite}
+  @keyframes ptrspin{to{transform:rotate(360deg)}}
+  </style>
+  <script>
+  (()=>{ const main=document.getElementById('main'), ptr=document.getElementById('ptr'), ico=ptr.querySelector('.ptr-i'), txt=ptr.querySelector('.ptr-t');
+    const GO=64; let y0=null, pull=0, busy=false;
+    const set=(h,anim)=>{ const t=anim?'transform .2s, height .2s':'none'; main.style.transition=t; ptr.style.transition=anim?'height .2s':'none';
+      main.style.transform=h?`translateY(${h}px)`:''; ptr.style.top=main.getBoundingClientRect().top-(h||0)+'px'; ptr.style.height=h+'px'; };
+    main.addEventListener('touchstart',e=>{ if(busy||e.touches.length!==1||main.scrollTop>0){ y0=null; return; } y0=e.touches[0].clientY; pull=0; },{passive:true});
+    main.addEventListener('touchmove',e=>{ if(y0==null) return;
+      if(e.touches.length>1){ y0=null; set(0,true); return; }
+      const dy=e.touches[0].clientY-y0;
+      if(dy<=0||main.scrollTop>0){ if(pull){ pull=0; set(0); } if(main.scrollTop>0) y0=null; return; }
+      e.preventDefault(); pull=Math.min(110,dy*0.5); set(pull);
+      ptr.classList.toggle('ready',pull>=GO); ico.textContent='↓'; txt.textContent=pull>=GO?'Release to refresh':'Pull to refresh';
+    },{passive:false});
+    const end=async()=>{ if(y0==null) return; y0=null;
+      if(pull<GO){ pull=0; set(0,true); return; }
+      busy=true; ptr.classList.remove('ready'); ptr.classList.add('busy'); ico.textContent='↻'; txt.textContent='Refreshing…'; set(48,true);
+      const t0=Date.now();
+      try{ if(window.__hqRefreshAll) await window.__hqRefreshAll(); else { location.reload(); return; } }catch(e){}
+      await new Promise(r=>setTimeout(r,Math.max(0,600-(Date.now()-t0))));
+      ptr.classList.remove('busy'); ico.textContent='✓'; txt.textContent='Updated';
+      setTimeout(()=>{ set(0,true); pull=0; busy=false; },500);
+    };
+    main.addEventListener('touchend',end); main.addEventListener('touchcancel',end);
+  })();
+  </script>
 
   <nav class="tabs" aria-label="Panels">
     <a href="#glance" data-p="glance"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Glance</a>
