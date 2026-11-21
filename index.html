@@ -316,6 +316,27 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (a1.error || a2.error) alert("Couldn't change their access. Try again.");
     fillTeam(s.closest('#teamcard'));
   });
+  const fmtWhen = t => new Date(t).toLocaleString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  async function fillRefresh(el) {
+    el.dataset.filled = '1';
+    const [{ data: req }, { data: last }] = await Promise.all([
+      sb.from('docs').select('data').eq('collection', 'ownerrefresh').eq('id', 'request').maybeSingle(),
+      sb.from('docs').select('data').eq('collection', 'ownerrefresh').eq('id', 'last').maybeSingle()
+    ]);
+    const r = req && req.data, l = last && last.data;
+    const pending = r && r.status === 'pending';
+    el.innerHTML = `<div class="note">Pulls the latest from Toast and 7shifts into the app: today's and yesterday's sales, drawers, tip-outs, discounts, events, reservations and clock-ins.</div>
+      <div class="note">Last refresh: <b>${l && l.at ? esc(fmtWhen(l.at)) : 'not yet'}</b>${l && l.summary ? ' · ' + esc(l.summary) : ''}</div>
+      ${pending ? `<div class="note" style="color:var(--warn)">Requested ${esc(fmtWhen(r.requestedAt))} by ${esc(r.by || 'an owner')}. Claude picks it up at the next check.</div>` : ''}
+      <div class="bagbtns"><button type="button" class="btn" data-refresh-now ${pending ? 'disabled' : ''}>${pending ? 'Refresh requested' : 'Refresh data now'}</button></div>`;
+  }
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-refresh-now]'); if (!b) return;
+    b.disabled = true;
+    const { error } = await sb.from('docs').upsert({ collection: 'ownerrefresh', id: 'request', data: { status: 'pending', requestedAt: new Date().toISOString(), by: me.name || me.email } });
+    if (error) { alert("Couldn't request a refresh. Try again."); b.disabled = false; return; }
+    fillRefresh(b.closest('#refreshcard'));
+  });
   async function fillData(el) {
     el.dataset.filled = '1';
     const { data, error } = await sb.from('docs').select('collection,id,updated_at').order('updated_at', { ascending: false }).limit(1000);
@@ -361,6 +382,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   new MutationObserver(() => {
     const t = document.getElementById('teamcard');
     if (t && !t.dataset.filled) fillTeam(t);
+    const rc = document.getElementById('refreshcard');
+    if (rc && !rc.dataset.filled) fillRefresh(rc);
     const dc = document.getElementById('datacard');
     if (dc && !dc.dataset.filled) fillData(dc);
     const a = document.getElementById('acctcard');
@@ -938,6 +961,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   applyLook();
   function admin(){
     return `<div><h1>Admin</h1><div class="sub">Owners only · Rick and Dave</div></div>
+    <section class="card"><h2>Refresh data</h2><div id="refreshcard"></div></section>
     <section class="card"><h2>Team and passwords</h2><div id="teamcard"></div></section>
     <section class="card"><h2>App data</h2><div id="datacard"></div></section>
     <section class="card"><h2>Security</h2><div class="note">Every screen's data is locked on the server by role. Owners see everything plus this Admin page. GMs see every tab. Inventory sees bar and food counts only. Removing someone cuts off their access right away.</div></section>`; }
@@ -974,7 +998,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(!I.cat.length) return `<div><h1>${INV.label} inventory</h1></div><div class="empty">${I.catErr?'Couldn\'t load the product list: '+esc(I.catErr):'Loading the product list…'}</div>`;
     const H=I.hist[0];
     if(!I.cur||I.cur.closed) return `<div><h1>${INV.label} inventory</h1><div class="sub">Last count: ${H?longDay(H.date)+' · '+esc(H.by||'')+(H.finishedAt?' · finished '+new Date(H.finishedAt).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):''):'none yet'}</div></div>
-      ${I.cur&&I.cur.finished?`<section class="card"><h2>✓ ${fmtDay(I.cur.date)} count finished</h2><div class="note">Locked${I.cur.finishedAt?' '+new Date(I.cur.finishedAt).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):''}. I'll process it Wednesday morning: usage, Toast sales and invoice costs.</div><button type="button" class="btn ghost" data-ireopen="1">Reopen count</button><div class="note">Found something after the fact? Reopen it, fix the number, then tap Finish Count again.</div></section>`:''}
+      ${I.cur&&I.cur.finished?`<section class="card"><h2>✓ ${fmtDay(I.cur.date)} Count Finished · ${INV.label.toUpperCase()}</h2><div class="note">Locked${I.cur.finishedAt?' '+new Date(I.cur.finishedAt).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):''}. I'll process it Wednesday morning: usage, Toast sales and invoice costs.</div><button type="button" class="btn ghost" data-ireopen="1">Reopen count</button><div class="note">Found something after the fact? Reopen it, fix the number, then tap Finish Count again.</div></section>`:''}
       <section class="card"><h2>Start a count</h2><div>Counting today? Start ${fmtDay(today)}'s count. One person counts, one enters, one area at a time.</div>
       <button type="button" class="btn" data-istart="${today}">Start ${fmtDay(today)} count</button>
       <div class="note">On paper instead? Start the count, open Photos and add a picture of each page. I'll enter it Wednesday morning.</div></section>`;
