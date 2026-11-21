@@ -790,12 +790,31 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   }
   const fmtV = (v,kind) => kind==='money0'?money(v,0):kind==='money2'?money(v,2):kind==='pct'?(v==null?'–':v.toFixed(1)+'%'):(v==null?'–':Number(v).toLocaleString());
 
+  function todayGlance(d,g,target,flags){
+    const t=d.today||{}, lab=+g.cur.labor||0, ok=lab<=target, on=t.onClock||[];
+    const meter=(v)=>`<div class="meter" role="img" aria-label="Labor ${v.toFixed(1)} percent, target ${target} percent"><i style="width:${Math.min(v/40*100,100)}%;background:var(${v<=target?'--good':'--warn'})"></i><b style="left:${target/40*100}%"></b></div>`;
+    return `<div><h1>Today at a glance</h1><div class="sub">${longDay(d.date)} · so far${d.asOf?' as of '+esc(d.asOf):''} · tap Refresh data in Admin for the latest</div></div>
+    <section class="card"><h2>Labor right now</h2>
+      <div class="tiles">
+        <div class="tile"><div class="k">Labor vs ${target}% target</div><div class="n" style="color:var(${ok?'--good':'--warn'})">${lab.toFixed(1)}%</div>${meter(lab)}</div>
+        <div class="tile"><div class="k">Labor cost so far</div><div class="n">${t.laborCost!=null?money(t.laborCost,0):'–'}</div>${t.hours!=null?`<div class="note">${(+t.hours).toFixed(1)} hours</div>`:''}</div>
+        <div class="tile"><div class="k">Net sales so far</div><div class="n">${money(g.cur.net,0)}</div><div class="note">${g.cur.guests||0} guests</div></div>
+        ${t.projected!=null?`<div class="tile"><div class="k">Projected at close</div><div class="n" style="color:var(${t.projected<=target?'--good':'--warn'})">${(+t.projected).toFixed(1)}%</div><div class="note">${esc(t.projectedNote||'scheduled hours vs. expected sales')}</div></div>`:''}
+      </div>
+      ${t.breakEven!=null?`<div class="note">Sales needed to hit ${target}% with today's scheduled labor: <b>${money(t.breakEven,0)}</b></div>`:''}
+      <h3 style="margin:12px 0 4px;font-size:.95rem">On the clock now · ${on.length}</h3>
+      ${on.length?`<ul class="guests" style="margin:0">${on.map(p=>`<li><div class="gtop"><b>${esc(p.name)}</b><span class="note">${esc(p.job||'')}</span></div><div class="note">In ${esc(p.in||'')}${p.sched?' · scheduled out '+esc(p.sched):''}${p.over?` · <b style="color:var(--warn)">${esc(p.over)}</b>`:''}</div></li>`).join('')}</ul>`:'<div class="note">Nobody clocked in right now, or not refreshed yet.</div>'}
+    </section>
+    ${flags}
+    <section class="card"><h2>Same day last week · full day</h2><div class="note">${esc(g.lwLabel||'')}: ${money(g.lw?.net||0,0)} net · ${g.lw?.guests||0} guests · labor ${(+(g.lw?.labor||0)).toFixed(1)}%</div></section>`;
+  }
   function glance(d){
     const g=d.glance; if(!g) return '<div class="empty">No scorecard for this day.</div>';
     const rows=[['Net sales','net','money0'],['Guests','guests','n'],['Avg / guest','avg','money2'],['Labor %','labor','pct'],['Food sales','food','money0'],['Bar sales','bar','money0']];
     const val=(o,k)=> k==='avg' ? (o&&o.guests? o.net/o.guests : null) : o?.[k];
     const target=g.laborTarget||24, lab=g.cur.labor;
     const flags = (d.flags||[]).length ? `<section class="flags"><h2>Flags</h2><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></section>` : '';
+    if(d.partial) return todayGlance(d,g,target,flags);
     return `
     <div><h1>${(()=>{const y=new Date(); y.setDate(y.getDate()-1); const yi=y.toLocaleDateString('en-CA'); return d.date===yi?'Yesterday at a glance':new Date(d.date+'T12:00').toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'}).replace(',','')+' at a glance';})()}</h1><div class="sub">${longDay(d.date)}</div></div>
     <div class="tiles">
