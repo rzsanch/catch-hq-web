@@ -554,6 +554,7 @@ nav.tabs a{font-size:.6rem}
 .ctrls{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hh,56px));z-index:4;background:var(--bg);display:grid;gap:8px;width:100%;max-width:900px;margin:0 auto;padding-block:10px 8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
 .ctrls[hidden]{display:none}
 .ctrls .ptitle h1{font-size:1.6rem}
+.bandfee{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.bandfee .linkbtn{font:inherit;background:none;border:0;color:var(--teal);text-decoration:underline;padding:0;cursor:pointer}.feeonly{font-size:.7rem;color:var(--muted)}
 .admbtn{margin-left:auto;color:inherit;display:grid;place-items:center;width:36px;height:36px;border-radius:8px}
 .admbtn:not([hidden])+.gear{margin-left:4px}
 .gear{margin-left:auto;color:inherit;display:grid;place-items:center;width:36px;height:36px;border-radius:8px}
@@ -916,10 +917,12 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const isRes=e=>Array.isArray(e.guests)||e.booked!=null;
   const byDate=list=>{const m=new Map(); list.forEach(e=>{if(!m.has(e.date))m.set(e.date,[]); m.get(e.date).push(e);}); return [...m.entries()];};
   const upcoming=()=>{const t=new Date(); t.setHours(0,0,0,0); return S.events.filter(e=>new Date(e.date+'T23:59:00')>=t).sort((a,b)=>(a.date+(a.sort||'')).localeCompare(b.date+(b.sort||'')));};
+  const isBand=e=>/live music/i.test(e.category||'')||/^band-/.test(e.id||'');
+  const bandFee=e=>{ const f=(S.fees||{})[e.id]; return `<div class="note bandfee">${f&&f.fee!=null?`Band cost: <b>${money(+f.fee,0)}</b> <button type="button" class="linkbtn" data-fee-edit="${esc(e.id)}" data-fee-name="${esc(e.name)}">Edit</button>`:`<button type="button" class="mini" data-fee-edit="${esc(e.id)}" data-fee-name="${esc(e.name)}">+ Add band cost</button>`} <span class="feeonly">owners &amp; GMs only</span></div>`; };
   function evTile(e){
     const cls=(e.category||'').toLowerCase().replace(/[^a-z]+/g,'-');
     return `<article class="etile">${e.img?`<button type="button" class="thumb" data-img="${esc(e.full||e.img)}" aria-label="View ${esc(e.name)} artwork"><img src="${esc(e.img)}" alt="${esc(e.name)} artwork" loading="lazy"></button>`:`<div class="thumb"><img src="${LOGO}" alt="The Fishermen's Catch logo" loading="lazy"></div>`}
-      <div class="ebody"><span class="tag t-${cls}">${esc(e.category||'')}</span><div class="what">${esc(e.name)}</div><div class="note">${esc(e.time||'')}</div>${e.detail?`<div class="note">${esc(e.detail)}</div>`:''}</div></article>`;
+      <div class="ebody"><span class="tag t-${cls}">${esc(e.category||'')}</span><div class="what">${esc(e.name)}</div><div class="note">${esc(e.time||'')}</div>${e.detail?`<div class="note">${esc(e.detail)}</div>`:''}${S.full&&isBand(e)?bandFee(e):''}</div></article>`;
   }
   function events(){
     const end=new Date(); end.setHours(0,0,0,0); end.setDate(end.getDate()+31);
@@ -1184,6 +1187,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
           .catch(()=>alertBox("Couldn't finish the count. Check your connection and try again.")); }
       return; }
     const cx=e.target.closest('[data-icancel]'); if(cx){ const v=cx.dataset.icancel; if(v==='ask'){ INV.st.confirmFinish=false; INV.st.confirmCancel=true; render(); } else if(v==='no'){ INV.st.confirmCancel=false; render(); } else { INV.st.confirmCancel=false; window.__db.doc(INV.pfx+'meta/current').set({...INV.st.cur,closed:true,cancelled:true,cancelledAt:new Date().toISOString()}).catch(()=>alertBox("Couldn't cancel the count. Try again.")); } return; }
+    const fe=e.target.closest('[data-fee-edit]'); if(fe){ const id=fe.dataset.feeEdit, cur=(S.fees||{})[id]; const v=prompt(`Band cost for ${fe.dataset.feeName} (whole dollars). Only owners and GMs see this.`, cur&&cur.fee!=null?cur.fee:''); if(v===null) return; const n=String(v).replace(/[^0-9.]/g,''); try{ if(n==='') await window.__db.collection('bandfees').doc(id).delete(); else await window.__db.collection('bandfees').doc(id).set({fee:+n,updatedAt:new Date().toISOString()}); }catch(x){ alertBox("Couldn't save the band cost."); } return; }
     const ad=e.target.closest('.admbtn'); if(ad){ e.preventDefault(); if(S.panel==='admin'){ location.hash=S.prevPanel||'glance'; } else { if(S.panel!=='settings') S.prevPanel=S.panel; location.hash='admin'; } return; }
     const gr=e.target.closest('.gear'); if(gr){ e.preventDefault(); if(S.panel==='settings'){ location.hash=S.prevPanel||'glance'; } else { S.prevPanel=S.panel; location.hash='settings'; } return; }
     const zb=e.target.closest('[data-zoom]'); if(zb){ const v=zb.dataset.zoom; window.__setZoom(v==='reset'?1:(window.__getZoom()+ +v)); return; }
@@ -1212,6 +1216,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   try{ S.isOwner=!!(user&&user.isOwner()); }catch(e){ S.isOwner=false; }
   { const ab=document.querySelector('.admbtn'); if(ab) ab.hidden=!S.isOwner; }
   if(location.hash==='#admin') route();
+  if(S.full){ S.fees={}; db.collection('bandfees').onSnapshot(s=>{ S.fees={}; s.docs.forEach(d=>S.fees[d.id]=d.data()); if(S.panel==='events') render(); },()=>{}); }
   let uid=null; try{ uid=user? await user.id():null; }catch(e){}
   window.__prefDoc=k=> uid? db.collection('data/users/'+uid).doc(k) : db.doc('prefs/'+k);
   const subPref=(k,fn)=>{ let migrated=false; window.__prefDoc(k).onSnapshot(s=>{ if(s.exists) fn(s.data()); else if(S.full && uid && !migrated){ migrated=true; db.doc('prefs/'+k).get().then(o=>{ if(o.exists){ fn(o.data()); window.__prefDoc(k).set(o.data()).catch(()=>{}); } }).catch(()=>{}); } },()=>{}); };
