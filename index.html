@@ -1164,7 +1164,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     document.querySelectorAll('nav.tabs a').forEach(a=>a.setAttribute('aria-current', a.dataset.p===S.panel?'page':'false'));
     const daily=DAILY.includes(S.panel);
     $('prev').disabled = !daily || S.idx>=S.days.length-1; $('next').disabled = !daily || S.idx<=0;
-    $('dlabel').textContent = daily ? (S.day? fmtDay(S.day.date) : (S.ok?'No data':'Loading…')) : 'Upcoming';
+    $('dlabel').textContent = daily ? (S.day? fmtDay(S.day.date)+(S.day.partial?' · so far'+(S.day.asOf?' ('+S.day.asOf+')':''):'') : (S.ok?'No data':'Loading…')) : 'Upcoming';
     const m=$('main');
     if(daily && !S.day){ m.innerHTML = `<div class="empty">${S.ok?'The first daily report lands here after the 5:23 AM audit.':'Loading the latest day…'}</div>`; return; }
     if(S.panel==='tipouts' && S.tipView==='week'){ m.innerHTML = tipSwitch() + tipWeek(); return; }
