@@ -846,13 +846,13 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const bagId=(date,server)=>`${date}--${slug(server)}`;
   const owedOf=b=>b&&b.actual!=null&&b.expected!=null? Math.max(0,+(b.expected-b.actual).toFixed(2)) : 0;
   const mondayOf=iso=>{const d=new Date(iso+'T12:00'); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.toISOString().slice(0,10);};
-  function tipSwitch(){ return `<div class="seg" role="tablist"><button type="button" role="tab" aria-selected="${S.tipView==='day'}" class="${S.tipView==='day'?'on':''}" data-tipview="day">Day</button><button type="button" role="tab" aria-selected="${S.tipView==='week'}" class="${S.tipView==='week'?'on':''}" data-tipview="week">Current Week</button><button type="button" role="tab" aria-selected="${S.tipView==='owed'}" class="${S.tipView==='owed'?'on':''}" data-tipview="owed">Tips Owed${(()=>{const t=S.bags.filter(b=>!b.paid&&owedOf(b)>0).reduce((a,b)=>a+owedOf(b),0); return t?` <span class="badge">${money(t,0)}</span>`:'';})()}</button></div>`; }
+  function tipSwitch(){ return `<div class="seg" role="tablist"><button type="button" role="tab" aria-selected="${S.tipView==='day'}" class="${S.tipView==='day'?'on':''}" data-tipview="day">Day</button><button type="button" role="tab" aria-selected="${S.tipView==='week'}" class="${S.tipView==='week'?'on':''}" data-tipview="week">Week (Mon–Sun)</button><button type="button" role="tab" aria-selected="${S.tipView==='owed'}" class="${S.tipView==='owed'?'on':''}" data-tipview="owed">Tips Owed${(()=>{const t=S.bags.filter(b=>!b.paid&&owedOf(b)>0).reduce((a,b)=>a+owedOf(b),0); return t?` <span class="badge">${money(t,0)}</span>`:'';})()}</button></div>`; }
   function tipWeek(){
     const cur=mondayOf(new Date().toLocaleDateString('en-CA')); const weeks=[0,1,2,3,4].map(k=>{ const d=new Date(cur+'T12:00'); d.setDate(d.getDate()-7*k); return d.toISOString().slice(0,10); });
     const i=Math.min(S.tipWk,weeks.length-1), wk=weeks[i];
     const end=new Date(wk+'T12:00'); end.setDate(end.getDate()+6); const endIso=end.toISOString().slice(0,10);
     const f=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    const bar=pillbar(weeks.map((w,k)=>{const e=new Date(w+'T12:00'); e.setDate(e.getDate()+6); return k===0?`This week`:`${f(w)}–${f(e.toISOString().slice(0,10))}`;}),'data-tipwk',i);
+    const bar=pillbar(weeks.map((w,k)=>{const e=new Date(w+'T12:00'); e.setDate(e.getDate()+6); return k===0?`Current Week`:`${f(w)}–${f(e.toISOString().slice(0,10))}`;}),'data-tipwk',i);
     const days=S.days.filter(d=>mondayOf(d)===wk).sort();
     if(!days.length) return `<div><h1>Tip-outs · week</h1><div class="sub">${f(wk)}–${f(endIso)}</div></div>${bar}<div class="empty">${i===0?'No tip-outs recorded yet this week.':'No tip-out data saved for this week.'}</div>`;
     const per={}; let bagsNeed=0, bagsDone=0;
