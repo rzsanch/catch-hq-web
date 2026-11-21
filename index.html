@@ -614,6 +614,7 @@ nav.tabs a{font-size:.6rem}
 .ctrls[hidden]{display:none}
 .ctrls .ptitle h1{font-size:1.6rem}
 .bandfee{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.bandfee .linkbtn{font:inherit;background:none;border:0;color:var(--teal);text-decoration:underline;padding:0;cursor:pointer}.feeonly{font-size:.7rem;color:var(--muted)}
+.admsec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between}.admsec>summary::-webkit-details-marker{display:none}.admsec>summary h2{margin:0}.admsec>summary::after{content:"▾";color:var(--muted);transition:transform .15s}.admsec:not([open])>summary::after{transform:rotate(-90deg)}.admsec[open]>summary{margin-bottom:10px}
 .admbtn{margin-left:auto;color:inherit;display:grid;place-items:center;width:36px;height:36px;border-radius:8px}
 .admbtn:not([hidden])+.gear{margin-left:4px}
 .gear{margin-left:auto;color:inherit;display:grid;place-items:center;width:36px;height:36px;border-radius:8px}
@@ -1028,11 +1029,11 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   applyLook();
   function admin(){
     return `<div><h1>Admin</h1><div class="sub">Owners only · Rick and Dave</div></div>
-    <section class="card"><h2>Refresh data</h2><div id="refreshcard"></div></section>
-    <section class="card"><h2>Bands</h2><div id="bandscard"></div></section>
-    <section class="card"><h2>Team and passwords</h2><div id="teamcard"></div></section>
-    <section class="card"><h2>App data</h2><div id="datacard"></div></section>
-    <section class="card"><h2>Security</h2><div class="note">Every screen's data is locked on the server by role. Owners see everything plus this Admin page. GMs see every tab. Inventory sees bar and food counts only. Removing someone cuts off their access right away.</div></section>`; }
+    <details class="card admsec"><summary><h2>Refresh data</h2></summary><div id="refreshcard"></div></details>
+    <details class="card admsec"><summary><h2>Bands</h2></summary><div id="bandscard"></div></details>
+    <details class="card admsec"><summary><h2>Team and passwords</h2></summary><div id="teamcard"></div></details>
+    <details class="card admsec"><summary><h2>App data</h2></summary><div id="datacard"></div></details>
+    <details class="card admsec"><summary><h2>Security</h2></summary><div class="note">Every screen's data is locked on the server by role. Owners see everything plus this Admin page. GMs see every tab. Inventory sees bar and food counts only. Removing someone cuts off their access right away.</div></details>`; }
   function settings(){ const h=getHidden();
     return `<div><h1>Settings</h1><div class="sub">${S.limited?'Appearance and text size':'Choose which tabs show on this phone'}</div></div>
     ${S.limited?`<section class="card"><h2>Your access</h2><div class="note">You have access to Inventory (bar and food). Ask Rick or Dave if you need more.</div></section>`:''}
