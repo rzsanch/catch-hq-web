@@ -10,6 +10,7 @@
       <label for="gate-pw">Password</label>
       <input id="gate-pw" type="password" autocomplete="current-password" required>
       <button id="gate-login" class="btn" type="submit">Sign in</button>
+      <button id="gate-forgot" class="linkbtn" type="button">Forgot password?</button>
       <button id="gate-to-create" class="linkbtn" type="button">First time? Create your password</button>
     </form>
     <form id="gate-form-create" data-step="create" hidden>
@@ -353,6 +354,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     $('gate-form-create').addEventListener('submit', createPw);
     $('gate-to-create').addEventListener('click', () => { $('gate-new-email').value = $('gate-email').value; show('create'); });
     $('gate-to-login').addEventListener('click', () => show('login'));
+    $('gate-forgot').addEventListener('click', () => show('login', 'Ask Rick or Dave to reset it. They set a temporary password for you in Settings → Team access, then you sign in with it here.'));
     $('gate-retry').addEventListener('click', signOut);
     const { data } = await sb.auth.getSession();
     if (data.session) start(data.session); else show('login');
