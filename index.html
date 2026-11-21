@@ -368,7 +368,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             <label>Notes<input name="notes" value="${esc(b.notes || '')}"></label>
             <div class="bagbtns"><button type="submit" class="btn">Save</button><span class="note" data-band-msg role="status"></span></div>
           </form></details></li>`; }).join('')}</ul>
-      <form class="newform" data-band-add><label>New band name<input name="name" required placeholder="e.g. Angelo"></label><label>Usual cost ($)<input name="fee" inputmode="numeric"></label><div class="bagbtns"><button type="submit" class="btn ghost">Add band</button></div></form>`;
+      <form class="newform" data-band-add><label>New entertainment name<input name="name" required placeholder="e.g. a band, duo or karaoke host"></label><label>Usual cost ($)<input name="fee" inputmode="numeric"></label><div class="bagbtns"><button type="submit" class="btn ghost">Add Entertainment</button></div></form>`;
   }
   document.addEventListener('submit', async e => {
     const f = e.target.closest('[data-band-save]'), add = e.target.closest('[data-band-add]');
