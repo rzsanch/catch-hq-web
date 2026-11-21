@@ -854,15 +854,18 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const f=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const bar=pillbar(weeks.map((w,k)=>{const e=new Date(w+'T12:00'); e.setDate(e.getDate()+6); return k===0?`Current Week`:`${f(w)}–${f(e.toISOString().slice(0,10))}`;}),'data-tipwk',i);
     const days=S.days.filter(d=>mondayOf(d)===wk).sort();
-    if(!days.length) return `<div><h1>Tip-outs · week</h1><div class="sub">${f(wk)}–${f(endIso)}</div></div>${bar}<div class="empty">${i===0?'No tip-outs recorded yet this week.':'No tip-out data saved for this week.'}</div>`;
+    const hist=!days.length&&(S.tipHist||{})[wk];
+    if(!days.length&&!hist) return `<div><h1>Tip-outs · week</h1><div class="sub">${f(wk)}–${f(endIso)}</div></div>${bar}<div class="empty">${i===0?'No tip-outs recorded yet this week.':'No tip-out data saved for this week.'}</div>`;
     const per={}; let bagsNeed=0, bagsDone=0;
     days.forEach(d=>(S.dayDocs[d]?.tipouts||[]).forEach(r=>{ const n=r.server.replace(/ \(.*\)$/,''); const o=per[n]=per[n]||{shifts:0,kitchen:0,runner:0,busser:0,bar:0,total:0,noncash:0,owed:0,paid:0,left:0};
       o.shifts++; ['kitchen','runner','busser','bar','total','noncash'].forEach(k=>o[k]+=(+r[k]||0));
       const b=S.bags.find(x=>x.id===bagId(d,r.server)); if(r.kitchen){bagsNeed++; if(b&&b.actual!=null){bagsDone++; o.left+=b.actual; const ow=owedOf(b); if(b.paid) o.paid+=ow; else o.owed+=ow;}} }));
+    if(hist) (hist.rows||[]).forEach(r=>{ per[r.server]={shifts:+r.shifts||0,kitchen:+r.kitchen||0,runner:+r.runner||0,busser:+r.busser||0,bar:+r.bar||0,total:+r.total||0,noncash:+r.noncash||0,owed:0,paid:0,left:+r.kitchen||0}; bagsNeed+=+r.shifts||0; bagsDone+=+r.shifts||0; });
+    const nDays=hist? (+hist.days||0) : days.length;
     const rows=Object.entries(per).sort((a,b)=>b[1].total-a[1].total);
     const T=k=>rows.reduce((a,[,o])=>a+o[k],0); const c=v=>v?money(v,0):'–';
     const carry=S.bags.filter(b=>b.date<wk && !b.paid && owedOf(b)>0); const carryTot=carry.reduce((a,b)=>a+owedOf(b),0);
-    return `<div><h1>Tip-outs · week</h1><div class="sub">${f(wk)}–${f(endIso)} · ${days.length} ${days.length===1?'day':'days'} so far · ${bagsDone} of ${bagsNeed} bags counted</div></div>${bar}
+    return `<div><h1>Tip-outs · week</h1><div class="sub">${f(wk)}–${f(endIso)} · ${nDays} ${nDays===1?'day':'days'}${hist?' · from the Tips 2026 tracker, all bags paid':' so far · '+bagsDone+' of '+bagsNeed+' bags counted'}</div></div>${bar}
     ${carryTot?`<section class="card owedbox"><h2>Carried over · ${money(carryTot)}</h2><div class="note">Still owed from before this week: ${[...new Set(carry.map(b=>b.server.replace(/ \(.*\)$/,'')))].map(esc).join(', ')}. See Tips Owed for details.</div></section>`:''}
     <div class="tiles">
       <div class="tile"><div class="k">Tipped out</div><div class="n">${money(T('total'),0)}</div></div>
@@ -1298,6 +1301,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   }, ()=>{ clearTimeout(timer); $('main').innerHTML='<div class="empty">Couldn\'t load The Catch HQ right now.</div>'; });
   db.doc('promos/current').onSnapshot(s=>{ S.promos = s.exists? s.data():null; render(); }, ()=>{});
   db.collection('clockins').onSnapshot(s=>{ S.clock = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
+  db.collection('tipweeks').onSnapshot(s=>{ S.tipHist={}; s.docs.forEach(d=>S.tipHist[d.id]=d.data()); if(S.panel==='tipouts') render(); }, ()=>{});
   db.collection('promoweeks').onSnapshot(s=>{ S.pweeks = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
   db.collection('drawercounts').onSnapshot(s=>{ S.dcounts = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
   db.collection('tipbags').onSnapshot(s=>{ S.bags = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
