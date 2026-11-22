@@ -1102,7 +1102,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     <section class="card" ${S.limited?'hidden':''}><h2>My tabs</h2><div class="toggles">${Object.entries(TABNAMES).map(([k,v])=>`<label class="tog"><input type="checkbox" id="tab-${k}" data-tabtoggle="${k}" ${h.includes(k)?'':'checked'}><span>${v}</span></label>`).join('')}</div>
     <div class="note">Hidden tabs still keep their data. Turn them back on anytime. Saved to your account, so each person keeps their own tabs.</div></section>
     <section class="card"><h2>Appearance</h2>
-      <div class="seg" role="radiogroup" aria-label="Light or dark">${[['system','Match phone'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button type="button" role="radio" aria-checked="${(getLook().theme||'system')===k}" class="${(getLook().theme||'system')===k?'on':''}" data-look-theme="${k}">${l}</button>`).join('')}</div>
+      <div class="seg" role="radiogroup" aria-label="Light or dark">${[['system','Match device'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button type="button" role="radio" aria-checked="${(getLook().theme||'system')===k}" class="${(getLook().theme||'system')===k?'on':''}" data-look-theme="${k}">${l}</button>`).join('')}</div>
       <div class="note">Accent color</div>
       <div class="swatches" role="radiogroup" aria-label="Accent color">${ACCENTS.map(([k,l,c])=>`<button type="button" role="radio" aria-checked="${(getLook().accent||'teal')===k}" aria-label="${l}" title="${l}" class="sw ${(getLook().accent||'teal')===k?'on':''}" style="background:${c}" data-look-accent="${k}"></button>`).join('')}</div>
       <div class="note">Saved to your account.</div></section>
