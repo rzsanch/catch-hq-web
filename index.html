@@ -851,7 +851,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const rows=[['Net sales','net','money0'],['Guests','guests','n'],['Avg / guest','avg','money2'],['Labor %','labor','pct'],['Food sales','food','money0'],['Bar sales','bar','money0']];
     const val=(o,k)=> k==='avg' ? (o&&o.guests? o.net/o.guests : null) : o?.[k];
     const target=g.laborTarget||24, lab=g.cur.labor;
-    const flags = (d.flags||[]).length ? `<section class="flags"><h2>Flags</h2><ul>${d.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></section>` : '';
+    const fl=(d.flags||[]).filter(f=>!/\bJulio\b/i.test(f)); const flags = fl.length ? `<section class="flags"><h2>Flags</h2><ul>${fl.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></section>` : '';
     return `
     <div><h1>${(()=>{const y=new Date(); y.setDate(y.getDate()-1); const yi=y.toLocaleDateString('en-CA'); return d.date===yi?'Yesterday at a glance':new Date(d.date+'T12:00').toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'}).replace(',','')+' at a glance';})()}</h1><div class="sub">${longDay(d.date)}</div></div>
     <div class="tiles">
