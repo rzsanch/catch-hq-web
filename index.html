@@ -1451,7 +1451,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <div class="bagbtns"><button type="submit" class="btn">Add to list and count in ${label}</button><button type="button" class="btn ghost" data-npcancel="1">Cancel</button></div></form>
       <div class="note">It's added to the product list for everyone, flagged as new so I can add its cost from the next invoice.</div></section>`; };
     if(autoAll&&list.length) out+=`<div class="note" style="margin:6px 0">Nothing is usually kept in ${label}${I.vend?' from '+esc(I.vend):''}, so here's every ${I.vend?esc(I.vend)+' ':''}product. Count what you find here.</div>`;
-    if(!list.length) return out+`<div class="empty">${q?'No product matches “'+esc(I.q)+'”'+(I.vend?' from '+esc(I.vend)+'.':'.'):I.vend?'No '+esc(I.vend)+' products were here last count. Tick Show all to see every '+esc(I.vend)+' product.':'Nothing was here last count. Tick Show all, or add a new product below.'}</div>`+addForm();
+    if(!list.length) return out+`<div class="empty">${q?'No product matches “'+esc(I.q)+'”'+(I.vend?' from '+esc(I.vend)+'.':'.'):I.vend?'No '+esc(I.vend)+' products were here last count. Tick Show all products to see every '+esc(I.vend)+' product.':'Nothing was here last count. Tick Show all, or add a new product below.'}</div>`+addForm();
     const srt=isort(list,I.sort||'type'); list=srt.list;
     let g=null;
     for(const p of list){
