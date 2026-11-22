@@ -336,6 +336,29 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       ${r && r.status === 'needs-signin' ? `<div class="note" style="color:var(--warn)">Last request couldn't run: ${esc(r.message || 'a sign-in is needed on Rick\'s computer')}.</div>` : ''}
       <div class="bagbtns"><button type="button" class="btn" data-refresh-now ${pending ? 'disabled' : ''}>${pending ? 'Refresh requested' : 'Refresh data now'}</button></div>`;
   }
+  async function fillPush(el) {
+    el.dataset.filled = '1';
+    const [{ data: reqs }, { data: last }] = await Promise.all([
+      sb.from('docs').select('data').eq('collection', 'invmenureq').in('data->>status', ['pending']),
+      sb.from('docs').select('data').eq('collection', 'ownerrefresh').eq('id', 'push').maybeSingle()
+    ]);
+    const n = (reqs || []).length, l = last && last.data;
+    const recent = l && l.at && Date.now() - Date.parse(l.at) < 5 * 60e3;
+    el.innerHTML = `<div class="note">Sends waiting menu changes to Toast now instead of at the next :11. Claude saves them in Toast unpublished and emails you; you still publish in Toast.</div>
+      <div class="note"><b>${n}</b> change${n === 1 ? '' : 's'} waiting to go into Toast · see Inventory → More → Pending Toast Menu Changes.</div>
+      ${l && l.at ? `<div class="note">Last push: ${esc(fmtWhen(l.at))}${l.by ? ' by ' + esc(l.by) : ''}${recent ? ' · usually done in 5–10 minutes' : ''}</div>` : ''}
+      <div class="note">Rick's computer needs to be on with the Claude app open.</div>
+      <div class="bagbtns"><button type="button" class="btn" data-push-now ${!n || recent ? 'disabled' : ''}>${recent ? 'Pushed, working on it' : n ? 'Push to Toast now' : 'Nothing to push'}</button></div><div class="note" data-push-msg></div>`;
+  }
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-push-now]'); if (!b) return;
+    b.disabled = true; const msg = b.closest('#pushcard').querySelector('[data-push-msg]'); msg.textContent = 'Starting Claude…';
+    const { data, error } = await sb.functions.invoke('push-now', { body: { mode: 'menu' } });
+    let err = data && data.error;
+    if (error && !err) { try { err = (await error.context.json()).error; } catch (x) { err = "Couldn't reach the server."; } }
+    if (err) { msg.textContent = err; b.disabled = false; return; }
+    fillPush(b.closest('#pushcard'));
+  });
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-refresh-now]'); if (!b) return;
     b.disabled = true;
@@ -447,6 +470,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (t && !t.dataset.filled) fillTeam(t);
     const bc = document.getElementById('bandscard');
     if (bc && !bc.dataset.filled) fillBands(bc);
+    const pc = document.getElementById('pushcard');
+    if (pc && !pc.dataset.filled) fillPush(pc);
     const rc = document.getElementById('refreshcard');
     if (rc && !rc.dataset.filled) fillRefresh(rc);
     const dc = document.getElementById('datacard');
@@ -1098,6 +1123,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   applyLook();
   function admin(){
     return `<div><h1>Admin</h1><div class="sub">Owners only · Rick and Dave</div></div>
+    <details class="card admsec" open><summary><h2>Push to Toast</h2></summary><div id="pushcard"></div></details>
     <details class="card admsec"><summary><h2>Refresh data</h2></summary><div id="refreshcard"></div></details>
     <details class="card admsec"><summary><h2>Entertainment</h2></summary><div id="bandscard"></div></details>
     <details class="card admsec"><summary><h2>Team and passwords</h2></summary><div id="teamcard"></div></details>
