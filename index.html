@@ -1153,7 +1153,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     return `<div class="tblock"><div class="rfh">Toast menu</div>
       <label for="tm-item">Toast menu item<select id="tm-item" data-tmitem="1">${toastItemOptions(d,kind)}</select></label>
       ${cur? `<div class="note">${esc(cur.menu)} · ${esc(cur.group)}${cur.price!=null&&cur.price!==''?` · menu price <b>${fmtp(cur.price)}</b>`:' · price set by size or options in Toast'}</div>
-        ${S.isOwner?`<label for="tm-price">Change menu price (owners)<input id="tm-price" inputmode="decimal" value="${cur.price??''}" placeholder="${cur.price??''}"></label><div class="note">A new price goes into Toast for you to review and publish.</div>`:''}`
+        ${S.full?`<label for="tm-price">Change menu price (owners and GMs)<input id="tm-price" inputmode="decimal" value="${cur.price??''}" placeholder="${cur.price??''}"></label><div class="note">A new price goes into Toast and Rick and Dave get an email to review and publish it.</div>`:''}`
       : `<div class="note">${isNew?'Saving adds this to Toast for Rick or Dave to review and publish.':'Not found on the Toast menu. Pick the Toast item above, or fill this in to add it to Toast.'}</div>
         <div class="rfrow"><label for="tm-np" style="flex:1">Menu price<input id="tm-np" inputmode="decimal" value="${esc(d.newPrice??'')}" placeholder="e.g. 14"></label><label for="tm-group" style="flex:2">Toast group<select id="tm-group">${toastGroupOptions(kind,d.newGroup||'')}</select></label></div>
         <label for="tm-desc">Description for the menu (optional)<input id="tm-desc" value="${esc(d.newDesc||'')}" placeholder="What guests see in Toast online ordering"></label>`}
@@ -1162,7 +1162,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(it) o.toastId=it.value; if(g('tm-price')) o.priceTo=g('tm-price').value.trim(); if(g('tm-np')) o.newPrice=g('tm-np').value.trim(); if(g('tm-group')) o.newGroup=g('tm-group').value; if(g('tm-desc')) o.newDesc=g('tm-desc').value.trim(); return o; }
   async function sendMenuReq(kind,id,doc,t,origName){ const me=window.__hqMe||{}; const who=me.name||me.email||''; const now=new Date().toISOString(); const db=window.__db; const cur=toastFor({...doc,toastId:t.toastId},kind);
     const lines=kind==='bar'? (doc.pours||[]).filter(x=>x.p).map(x=>`${prodName(x.p)} ${x.oz} oz${x.base?' (liquor choice swaps this)':''}`) : (doc.lines||[]).map(l=>`${l.qty??'?'} ${l.unit||''} ${l.n||''}`.trim());
-    if(cur && S.isOwner && t.priceTo!=null && t.priceTo!=='' && +t.priceTo!==+cur.price && !isNaN(+t.priceTo)){
+    if(cur && S.full && t.priceTo!=null && t.priceTo!=='' && +t.priceTo!==+cur.price && !isNaN(+t.priceTo)){
       await db.collection('invmenureq').doc('price-'+cur.id+'-'+Date.now().toString(36)).set({type:'price',kind,rid:id,name:cur.name,toastId:cur.id,menu:cur.menu,group:cur.group,groupId:cur.groupId,from:cur.price??null,to:+t.priceTo,requestedBy:who,requestedAt:now,status:'pending'}); }
     if(cur && origName && tnorm(origName)!==tnorm(doc.name) && tnorm(origName)===tnorm(cur.name)){
       await db.collection('invmenureq').doc('rename-'+cur.id+'-'+Date.now().toString(36)).set({type:'rename',kind,rid:id,name:doc.name,from:cur.name,to:doc.name,toastId:cur.id,menu:cur.menu,group:cur.group,groupId:cur.groupId,price:cur.price??null,recipe:lines,requestedBy:who,requestedAt:now,status:'pending'}); }
