@@ -913,7 +913,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const hist=!days.length&&(S.tipHist||{})[wk];
     if(!days.length&&!hist) return `<div><h1>Tip-outs · week</h1><div class="sub">${f(wk)}–${f(endIso)}</div></div>${bar}<div class="empty">${i===0?'No tip-outs recorded yet this week.':'No tip-out data saved for this week.'}</div>`;
     const per={}; let bagsNeed=0, bagsDone=0;
-    days.forEach(d=>(S.dayDocs[d]?.tipouts||[]).forEach(r=>{ const n=r.server.replace(/ \(.*\)$/,''); const o=per[n]=per[n]||{shifts:0,kitchen:0,runner:0,busser:0,bar:0,total:0,noncash:0,owed:0,paid:0,left:0};
+    days.forEach(d=>tipRows(S.dayDocs[d]).forEach(r=>{ const n=r.server.replace(/ \(.*\)$/,''); const o=per[n]=per[n]||{shifts:0,kitchen:0,runner:0,busser:0,bar:0,total:0,noncash:0,owed:0,paid:0,left:0};
       o.shifts++; ['kitchen','runner','busser','bar','total','noncash'].forEach(k=>o[k]+=(+r[k]||0));
       const b=S.bags.find(x=>x.id===bagId(d,r.server)); if(r.kitchen){bagsNeed++; if(b&&b.actual!=null){bagsDone++; o.left+=b.actual; const ow=owedOf(b); if(b.paid) o.paid+=ow; else o.owed+=ow;}} }));
     if(hist) (hist.rows||[]).forEach(r=>{ per[r.server]={shifts:+r.shifts||0,kitchen:+r.kitchen||0,runner:+r.runner||0,busser:+r.busser||0,bar:+r.bar||0,total:+r.total||0,noncash:+r.noncash||0,owed:0,paid:0,left:+r.kitchen||0}; bagsNeed+=+r.shifts||0; bagsDone+=+r.shifts||0; });
@@ -940,8 +940,10 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(!open.length) return `<section class="card owedbox ok"><h2>Tips still owed</h2><div class="note">Nothing owed. Every counted tip bag is settled.</div></section>`;
     return `<section class="card owedbox"><h2>Tips still owed · ${money(tot)}</h2><ul class="guests" style="margin:0">${(()=>{const g={}; open.forEach(b=>{const n=b.server.replace(/ \(.*\)$/,''); (g[n]=g[n]||[]).push(b);}); return Object.entries(g).map(([n,list])=>`<li><div class="gtop"><b>${esc(n)}</b><span class="owedamt"><b style="color:var(--warn)">${money(list.reduce((a,b)=>a+owedOf(b),0))}</b><button type="button" class="mini" data-paid="${esc(list.map(b=>b.id).join(','))}">Mark paid</button></span></div>${list.map(b=>`<div class="owedday note"><span>${fmtDay(b.date)} · left ${money(b.actual)} of ${money(b.expected,0)}</span><span>${money(owedOf(b))}</span></div>`).join('')}</li>`).join('');})()}</ul></section>`;
   }
+  // Julio (manager) only shows in tip-outs when he closed a shift with tips (Rick, Nov 22 2026)
+  function tipRows(d){ return ((d&&d.tipouts)||[]).filter(r=>!/^Julio\b/i.test(r.server||'') || (!/no shift/i.test(r.server) && ((r.noncash||0)>0 || (r.cash||0)>0))); }
   function tipouts(d){
-    const t=d.tipouts||[]; if(!t.length) return '<div class="empty">No tip-outs for this day.</div>';
+    const t=tipRows(d); if(!t.length) return '<div class="empty">No tip-outs for this day.</div>';
     const sum=k=>t.reduce((s,r)=>s+(r[k]||0),0);
     const c=v=>v?money(v,0):'–';
     const B=id=>S.bags.find(x=>x.id===id);
