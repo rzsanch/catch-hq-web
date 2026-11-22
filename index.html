@@ -640,12 +640,13 @@ body.has-ptitle .brand{display:none}
 body.has-ptitle .htitle{display:block}
 .htitle::before{content:"The Catch HQ";display:block;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75;line-height:1.1}
 .htitle h1{color:var(--teal-ink);font-size:1.35rem;line-height:1.1;text-wrap:pretty}
-.htitle .mini{background:#fff;color:#0f4c5c;border-color:#fff;font-size:.8rem;padding:5px 10px;min-height:32px}
+.htitle .mini{background:var(--teal);color:var(--teal-ink);border:1.5px solid color-mix(in srgb,var(--teal-ink) 75%,transparent);font-size:.8rem;padding:5px 10px;min-height:32px}
+.htitle .mini:hover{background:color-mix(in srgb,var(--teal-ink) 14%,var(--teal))}
 .htitle .finishbtn{color:#1e7a3c}.htitle .cancelbtn{color:#b35c00}
 .htitle .hinv{margin-top:6px}
-.htitle .seg{border-color:#fff;vertical-align:middle}
-.htitle .seg button{background:transparent;color:#fff;padding:6px 12px;min-height:32px}
-.htitle .seg button.on{background:#fff;color:#0f4c5c}
+.htitle .seg{border-color:color-mix(in srgb,var(--teal-ink) 75%,transparent);vertical-align:middle}
+.htitle .seg button{background:transparent;color:var(--teal-ink);padding:6px 12px;min-height:32px}
+.htitle .seg button.on{background:var(--teal-ink);color:var(--teal)}
 .htitle .imenu{display:inline-block}
 .htitle .invh .bagbtns{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}
 .htitle .menupop button{font-size:.95rem}
