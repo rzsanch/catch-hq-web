@@ -1221,7 +1221,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   function recipesView(){
     const R=S.rec, all=Object.values(S.recipes).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
     const head=`<div><h1>Drink Recipes</h1><div class="sub">How much of each bottle goes into every drink rung in Toast. I use these to compare bottles used with drinks sold.</div></div>
-      <div class="seg" role="tablist" style="margin:10px 0"><button type="button" role="tab" class="${R.tab==='drinks'?'on':''}" aria-selected="${R.tab==='drinks'}" data-rectab="drinks">Specialty Drinks (${all.length})</button><button type="button" role="tab" class="${R.tab==='mods'?'on':''}" aria-selected="${R.tab==='mods'}" data-rectab="mods">Cocktails</button></div>`;
+      <div class="seg" role="tablist" style="margin:10px 0"><button type="button" role="tab" class="${R.tab==='drinks'?'on':''}" aria-selected="${R.tab==='drinks'}" data-rectab="drinks">Specialty Drinks (${all.length})</button><button type="button" role="tab" class="${R.tab==='mods'?'on':''}" aria-selected="${R.tab==='mods'}" data-rectab="mods">Well Drinks</button></div>`;
     if(!S.inv.cat.length) return head+'<div class="empty">Loading the bar product list…</div>';
     if(R.tab==='mods') return head+recModsView();
     if(R.edit) return head+recForm();
@@ -1230,7 +1230,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const row=r=>`<li><button type="button" class="recrow" data-recedit="${esc(r.id)}"><b>${esc(r.name)}</b>${(()=>{const v=tprice(r,'bar'); return v!=null?` <span class="note">${fmtp(v)}</span>`:(toastFor(r,'bar')?'':' <span class="note">not on Toast menu</span>');})()}${(r.aka||[]).length?` <span class="note">also ${esc(r.aka.join(', '))}</span>`:''}<div class="note">${pourText(r)||'No bottles yet'}${r.check?` · <span style="color:var(--warn)">${esc(r.check)}</span>`:''}</div></button></li>`;
     return head+menuReqCard()+`<div class="invtools"><input class="search" id="recq" type="search" placeholder="Find a drink or bottle" value="${esc(R.q)}" autocomplete="off" aria-label="Find a drink or bottle"><button type="button" class="btn" data-recedit="new">+ Add drink</button></div>
       ${need.length?`<section class="card"><h2>Needs a recipe (${need.length})</h2><div class="note">Drinks stay here until someone taps <b>Recipe Complete</b>.</div><ul class="reclist">${need.map(row).join('')}</ul></section>`:''}
-      <section class="card"><h2>Recipes (${done.length})</h2><ul class="reclist">${done.map(row).join('')||'<li class="note">None yet.</li>'}</ul><div class="note">(house) = the house spirit; a guest's upgrade in Toast swaps it (see Cocktails).</div></section>`;
+      <section class="card"><h2>Recipes (${done.length})</h2><ul class="reclist">${done.map(row).join('')||'<li class="note">None yet.</li>'}</ul><div class="note">(house) = the house spirit; a guest's upgrade in Toast swaps it (see Well Drinks).</div></section>`;
   }
   function recForm(){ const R=S.rec, d=R.draft||{name:'',aka:[],pours:[{p:'',oz:1.5,base:true}],notes:''};
     return `<section class="card"><h2>${R.edit==='new'?'Add a drink':'Edit '+esc(d.name)}</h2>
@@ -1240,7 +1240,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <div class="rfh">Bottles in this drink</div>
       ${(d.pours||[]).map((x,i)=>`<div class="rfrow" data-rfrow="${i}"><select class="rf-p" aria-label="Bottle ${i+1}">${prodOptions(x.p)}</select><input class="rf-oz" inputmode="decimal" value="${x.oz??''}" aria-label="Ounces for bottle ${i+1}"><span class="note">oz</span>${houseSpirit(x.p)?`<span class="pill" title="Swapped when a guest picks a ${esc(houseSpirit(x.p).toLowerCase())} upgrade">house ${esc(houseSpirit(x.p).toLowerCase())}</span>`:''}<button type="button" class="mini" data-rfdel="${i}" aria-label="Remove bottle ${i+1}">✕</button></div>`).join('')}
       <button type="button" class="mini" data-rfadd="1">+ Add bottle</button>
-      <div class="note">Build the drink with the house spirit. When a guest picks an upgrade in Toast, the house bottle is swapped automatically (see Cocktails). Juices, syrups and garnish don't need to be listed.</div>
+      <div class="note">Build the drink with the house spirit. When a guest picks an upgrade in Toast, the house bottle is swapped automatically (see Well Drinks). Juices, syrups and garnish don't need to be listed.</div>
       ${toastBlock(d,'bar',R.edit==='new')}
       <label for="rf-notes">Notes (optional)<textarea id="rf-notes" rows="2">${esc(d.notes||'')}</textarea></label>
       ${!d.complete?`<div class="note">Save keeps this drink in "Needs a recipe". Tap <b>Recipe Complete</b> when the bottles and pours are final; that moves it to Recipes and sends any Toast changes (new item, name or price) for Rick or Dave to publish.</div>`:''}
@@ -1290,7 +1290,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
           <div class="rmbot">${pin('up-up',u.up,ou,gu,'Upgrade +$')}${pin('up-ch',u.ch,oc,gc,'On its own $')}</div>
           ${missing.length?`<div class="note">Saving adds it to Toast: ${esc(missing.join(' and '))}</div>`:''}</div>`; }).join('')||'<div class="note">No upgrades yet.</div>'}</div>
       <button type="button" class="mini" data-upadd="${i}">+ Add ${esc(x.spirit.toLowerCase())} upgrade</button></section>`;
-    return bar+`<section class="card"><h2>How cocktails work</h2><div class="note">Every drink is built with the <b>house</b> spirit (house vodka = ${esc(prodName((c.spirits.find(x=>x.spirit==='Vodka')||{}).house)||'—')}). When a guest picks an upgrade in Toast (Vodka Upgrade → Grey Goose), the house bottle in that drink is swapped for the upgrade bottle, same pour.</div></section>
+    return bar+`<section class="card"><h2>How well drinks and upgrades work</h2><div class="note">Every drink is built with the <b>house</b> spirit (house vodka = ${esc(prodName((c.spirits.find(x=>x.spirit==='Vodka')||{}).house)||'—')}). When a guest picks an upgrade in Toast (Vodka Upgrade → Grey Goose), the house bottle in that drink is swapped for the upgrade bottle, same pour.</div></section>
       ${(c.spirits||[]).map(spCard).join('')}
       <section class="card"><h2>Other Toast modifiers</h2><div class="note">Modifiers that change the pour, like Cadillac (+ Grand Marnier) or Tall (+ more of the house spirit).</div>
       <div class="rmlist">${(c.extras||[]).map((m,k)=>`<div class="rmrow" data-exrow="${k}"><div class="rmtop"><input class="ex-name" value="${esc(m.name||'')}" placeholder="Modifier name in Toast" aria-label="Modifier name"><button type="button" class="mini" data-exdel="${k}" aria-label="Remove ${esc(m.name||'modifier')}">✕</button></div><div class="rmbot"><select class="ex-type" aria-label="What it does">${Object.entries(MODT).map(([kk,l])=>`<option value="${kk}"${(m.type||'add')===kk?' selected':''}>${l}</option>`).join('')}</select><select class="ex-p" aria-label="Bottle">${prodOptions(m.p).replace('Pick a bottle…','House spirit of the drink')}</select><input class="ex-oz" inputmode="decimal" value="${m.oz??''}" placeholder="oz" aria-label="Ounces"></div></div>`).join('')}</div>
