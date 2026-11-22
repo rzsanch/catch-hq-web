@@ -1397,7 +1397,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       ${mine.length?`<div class="photos">${mine.map(x=>`<figure><button type="button" class="thumb" style="width:100%" data-img="${esc(x.url)}"><img src="${esc(x.url)}" alt="Count sheet photo"></button><figcaption>${new Date(x.at).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'})}</figcaption></figure>`).join('')}</div>`:'<div class="empty">No photos for this count yet.</div>'}`;
     }
     if(I.view==='order'){
-      const items=I.cat.filter(p=>iorder(p.id)>0); const by={}; items.forEach(p=>{const v=p.v||'Vendor not set'; (by[v]=by[v]||[]).push(p);});
+      const items=I.cat.filter(p=>iorder(p.id)>0).sort((x,y)=>String(x.n).localeCompare(String(y.n),undefined,{sensitivity:'base',numeric:true})); const by={}; items.forEach(p=>{const v=p.v||'Vendor not set'; (by[v]=by[v]||[]).push(p);});
       const vs=Object.keys(by).sort((a,b)=>(a==='Vendor not set')-(b==='Vendor not set')||a.localeCompare(b));
       const noPar=I.cat.filter(p=>ipar(p.id)==null&&itot(p.id)>0).length;
       return title+pills+(items.length? vs.map(v=>{ const list=by[v]; const est=list.reduce((a,p)=>a+(+p.price||0)*iorder(p.id),0);
@@ -1412,7 +1412,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
         + (noPar?`<div class="note">${noPar} counted products don't have a par yet.</div>`:'');
     }
     if(I.view==='totals'){
-      const rows=I.cat.filter(p=>vok(p)&&(itot(p.id)||iltot(p.id)));
+      const rows=I.cat.filter(p=>vok(p)&&(itot(p.id)||iltot(p.id))).sort((x,y)=>String(x.n).localeCompare(String(y.n),undefined,{sensitivity:'base',numeric:true}));
       const counted=I.cat.filter(p=>INV.areas.some(([a])=>ival(p.id,a)!=null)).length;
       return title+pills+vpills+`<section class="card"><h2>${counted} products counted${I.vend?' · showing '+esc(I.vend):''}</h2><div class="scroll"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="r">Total</th><th class="r">Last</th><th class="r">Par</th><th class="r">Order</th></tr></thead>
       <tbody>${rows.map(p=>`<tr><td>${esc(p.n)}</td>${INV.areas.map(([a])=>`<td class="r">${ival(p.id,a)??''}</td>`).join('')}<td class="r"><b>${+itot(p.id).toFixed(2)}</b></td><td class="r">${+iltot(p.id).toFixed(2)||'–'}</td><td class="r">${ipar(p.id)??'–'}</td><td class="r">${iorder(p.id)?`<b style="color:var(--warn)">${iorder(p.id)}</b>`:'–'}</td></tr>`).join('')}</tbody></table></div>
@@ -1432,6 +1432,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <div class="note">It's added to the product list for everyone, flagged as new so I can add its cost from the next invoice.</div></section>`; };
     if(autoAll&&list.length) out+=`<div class="note" style="margin:6px 0">Nothing is usually kept in ${label}${I.vend?' from '+esc(I.vend):''}, so here's every ${I.vend?esc(I.vend)+' ':''}product. Count what you find here.</div>`;
     if(!list.length) return out+`<div class="empty">${q?'No product matches “'+esc(I.q)+'”'+(I.vend?' from '+esc(I.vend)+'.':'.'):I.vend?'No '+esc(I.vend)+' products were here last count. Tick Show all to see every '+esc(I.vend)+' product.':'Nothing was here last count. Tick Show all, or add a new product below.'}</div>`+addForm();
+    const az=(x,y)=>String(x.g||'Other').localeCompare(String(y.g||'Other'),undefined,{sensitivity:'base'})||String(x.n).localeCompare(String(y.n),undefined,{sensitivity:'base',numeric:true});
+    list=list.slice().sort(az);
     let g=null;
     for(const p of list){
       if(p.g!==g){ g=p.g; out+=`<div class="grp">${esc(g||'Other')}</div>`; }
