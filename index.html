@@ -1136,7 +1136,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   ['bar','food'].forEach(k=>{ try{ INVS[k].st.vend=localStorage.getItem('hq.vend.'+k)||''; }catch(x){} });
   let INV=INVS.bar;
   const inum=v=>v==null||v===''?null:+v;
-  const ilast=()=>{const I=INV.st; return I.hist.find(h=>!I.cur||h.date<I.cur.date)||I.hist[0]||null;};
+  // Skip counts saved with no numbers (e.g. a test count finished empty) so "last count" stays meaningful
+  const ilast=()=>{const I=INV.st; const has=h=>h&&h.counts&&Object.keys(h.counts).length>0; return I.hist.find(h=>has(h)&&(!I.cur||h.date<I.cur.date))||I.hist.find(has)||null;};
   const ival=(pid,a)=>{const e=INV.st.entries[pid]; return e? inum(e[a]) : null;};
   const ilval=(pid,a)=>{const L=ilast(); return L&&L.counts&&L.counts[pid]? inum(L.counts[pid][a]) : null;};
   const itot=pid=>INV.areas.reduce((s,[a])=>s+(ival(pid,a)||0),0);
@@ -1398,7 +1399,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <div class="note">Wednesday morning I'll work out usage (last count + deliveries − this count) and compare it with Toast sales and invoice costs.</div></section>`
     }
     const a=I.view, label=INV.areas.find(x=>x[0]===a)[1], q=I.q.trim().toLowerCase();
-    const list=I.cat.filter(p=> vok(p) && (q? (p.n.toLowerCase().includes(q)||String(p.g).toLowerCase().includes(q)) : (I.all||p.home===a||ilval(p.id,a)!=null||ival(p.id,a)!=null)));
+    let list=I.cat.filter(p=> vok(p) && (q? (p.n.toLowerCase().includes(q)||String(p.g).toLowerCase().includes(q)) : (I.all||p.home===a||ilval(p.id,a)!=null||ival(p.id,a)!=null)));
+    const autoAll=!q&&!I.all&&!list.length; if(autoAll) list=I.cat.filter(vok);
     const usual=I.cat.filter(p=>vok(p)&&(p.home===a||ilval(p.id,a)!=null)).length;
     let out=title+pills+vpills+`<div class="invtools"><input class="search" id="iq" type="search" placeholder="Find a product" value="${esc(I.q)}" autocomplete="off" aria-label="Find a product"><label class="chk" for="iall"><input type="checkbox" id="iall" ${I.all?'checked':''}> Show all</label><span class="note">${label}${I.vend?' · '+esc(I.vend):''}: ${I.vend?list.filter(p=>ival(p.id,a)!=null).length:cnt(a)} counted${usual?' of '+usual+' usual':''}</span></div>`;
     const addForm=()=>{ const groups=[...new Set(I.cat.map(x=>x.g).filter(Boolean))].sort(); return `<section class="card" id="newprod"><h2>Add a product not on the list</h2>
@@ -1408,6 +1410,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <label for="np-vend">Vendor<input id="np-vend" list="np-vends" value="${esc(I.vend||'')}" placeholder="e.g. Sysco"><datalist id="np-vends">${[...new Set(I.cat.map(x=>x.v).filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">`).join('')}</datalist></label>
       <div class="bagbtns"><button type="submit" class="btn">Add to list and count in ${label}</button><button type="button" class="btn ghost" data-npcancel="1">Cancel</button></div></form>
       <div class="note">It's added to the product list for everyone, flagged as new so I can add its cost from the next invoice.</div></section>`; };
+    if(autoAll&&list.length) out+=`<div class="note" style="margin:6px 0">Nothing is usually kept in ${label}${I.vend?' from '+esc(I.vend):''}, so here's every ${I.vend?esc(I.vend)+' ':''}product. Count what you find here.</div>`;
     if(!list.length) return out+`<div class="empty">${q?'No product matches “'+esc(I.q)+'”'+(I.vend?' from '+esc(I.vend)+'.':'.'):I.vend?'No '+esc(I.vend)+' products were here last count. Tick Show all to see every '+esc(I.vend)+' product.':'Nothing was here last count. Tick Show all, or add a new product below.'}</div>`+addForm();
     let g=null;
     for(const p of list){
