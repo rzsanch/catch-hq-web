@@ -649,7 +649,7 @@ nav.tabs a[hidden]{display:none!important}
 .photos figcaption{font-size:.75rem;color:var(--muted);padding:6px 8px}
 .newform{display:grid;gap:10px}
 .newform label{display:grid;gap:4px;font-size:.82rem;color:var(--muted)}
-.newform input,.newform select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.newform input,.newform select,.newform textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
 .btn.ghost{background:var(--surface);color:var(--teal);border:1px solid var(--teal)}
 .invh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .cancelbtn{font-family:var(--body);text-transform:none;letter-spacing:0;color:var(--warn);border-color:var(--warn)}
@@ -671,6 +671,10 @@ details.evt>summary .resdesc .what::after{content:""}
 .iord{width:56px;height:32px;text-align:center;border:1px solid var(--warn-line);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-weight:700}
 .invtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .imenu{position:relative}
+.reclist{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}.recrow{all:unset;box-sizing:border-box;display:block;width:100%;cursor:pointer;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.recrow:hover{border-color:var(--teal)}.recrow:focus-visible{outline:2px solid var(--teal)}
+.rfh{font-weight:600;margin-top:6px}.rfrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.rfrow select{flex:1 1 180px;min-width:0}.rfrow .rf-oz{width:64px}
+.recform input,.recform select,.recform textarea{width:100%;min-width:0}.rfrow select.rf-p{flex:1 1 0;width:0}.rfrow input.rf-oz{flex:0 0 60px;width:60px}
+.rmlist{display:grid;gap:8px}.rmrow{border:1px solid var(--line);border-radius:10px;padding:8px;display:grid;gap:6px;background:var(--surface)}.rmtop,.rmbot{display:flex;gap:6px;align-items:center}.rmrow input,.rmrow select{font:inherit;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}.rm-name{flex:1}.rmbot select{flex:1 1 0;width:0}.rmbot select.rm-type{flex:0 0 112px;width:112px}.rmbot .rm-oz{flex:0 0 58px;width:58px}
 .menubtn{font-size:.9rem;min-height:38px;padding:6px 12px}
 .menupop{position:absolute;left:0;top:calc(100% + 6px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:grid;min-width:200px;overflow:hidden}
 .menupop button{font:inherit;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 14px;color:var(--ink);cursor:pointer}
@@ -813,7 +817,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const money = (n, c=2) => n==null||isNaN(n) ? '–' : '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:c,maximumFractionDigits:c});
   const PANELS = ['glance','drawers','tipouts','discounts','promos','events','reservations','inventory','clockins','settings','admin'];
   const DAILY = ['glance','drawers','tipouts','discounts'];
-  const S = { invKind:'bar', inv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'bar',q:'',all:false}, finv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'freezer',q:'',all:false}, dcounts:[], bags:[], editing:null, dayDocs:{}, tipView:'day', tipWk:0, days:[], idx:0, day:null, promos:null, pweeks:[], pw:0, evWhen:'up', resWhen:'up', other:null, events:[], clock:[], wk:0, panel:'glance', ok:false };
+  const S = { rec:{on:false,tab:'drinks',q:'',edit:null,draft:null,mods:null,confirmDel:false}, recipes:{}, recMods:[], invKind:'bar', inv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'bar',q:'',all:false}, finv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'freezer',q:'',all:false}, dcounts:[], bags:[], editing:null, dayDocs:{}, tipView:'day', tipWk:0, days:[], idx:0, day:null, promos:null, pweeks:[], pw:0, evWhen:'up', resWhen:'up', other:null, events:[], clock:[], wk:0, panel:'glance', ok:false };
 
   function fmtDay(iso){ const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'}); }
   function longDay(iso){ const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }
@@ -1122,8 +1126,56 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   function orderText(v,list){ const d=new Date().toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});
     return `Hi ${v==='Vendor not set'?'':v+' '}team,\n\nOrder for The Fishermen's Catch (${d}):\n\n`+list.map(p=>`- ${iorder(p.id)} x ${p.n}${p.s?' ('+p.s+')':''}`).join('\n')+`\n\nDeliver to 1185 S. Victoria Ave, Oxnard, CA 93035.\nPlease confirm availability and delivery date. Thanks!\n\nRick Sanchez\nThe Fishermen's Catch · (805) 985-6200`; }
   function invOpen(){ return ['bar','food'].filter(k=>{ const c=INVS[k].st.cur; return c&&!c.closed; }); }
-  function invSwitch(){ const open=invOpen(); const solo=open.length===1; return `<div class="seg" role="tablist">${(solo?[S.invKind]:['bar','food']).map(k=>`<button type="button" role="tab" aria-selected="${S.invKind===k}" class="${S.invKind===k?'on':''}" data-invkind="${k}">${k==='bar'?'Bar':'Food'}</button>`).join('')}</div>${INV.st.cur&&!INV.st.cur.closed?`<div class="imenu"><button type="button" class="mini menubtn" data-imenu="toggle" aria-haspopup="true" aria-expanded="${!!S.invMenu}">More ▾</button>${S.invMenu?`<div class="menupop" role="menu"><button type="button" role="menuitem" data-imenu="add">+ Add new product</button><button type="button" role="menuitem" data-imenu="photo">Photo of Hardcopy</button><button type="button" role="menuitem" data-imenu="order">Order Products${(()=>{const n=INV.st.cat.filter(p=>iorder(p.id)>0).length; return n?` (${n})`:'';})()}</button></div>`:''}</div>`:''}`; }
-  function inventory(){ { const open=invOpen(); if(open.length===1) S.invKind=open[0]; } INV=INVS[S.invKind]||INVS.bar; return `<div class="invtop">${invSwitch()}</div>`+inventoryInner(); }
+  function invSwitch(){ const open=invOpen(); const solo=open.length===1; const counting=!!(INV.st.cur&&!INV.st.cur.closed); const bar=true; return `<div class="seg" role="tablist">${(solo?[S.invKind]:['bar','food']).map(k=>`<button type="button" role="tab" aria-selected="${S.invKind===k}" class="${S.invKind===k?'on':''}" data-invkind="${k}">${k==='bar'?'Bar':'Food'}</button>`).join('')}</div>${counting||bar?`<div class="imenu"><button type="button" class="mini menubtn" data-imenu="toggle" aria-haspopup="true" aria-expanded="${!!S.invMenu}">More ▾</button>${S.invMenu?`<div class="menupop" role="menu">${counting?`<button type="button" role="menuitem" data-imenu="add">+ Add new product</button><button type="button" role="menuitem" data-imenu="photo">Photo of Hardcopy</button><button type="button" role="menuitem" data-imenu="order">Order Products${(()=>{const n=INV.st.cat.filter(p=>iorder(p.id)>0).length; return n?` (${n})`:'';})()}</button>`:''}${bar?`<button type="button" role="menuitem" data-imenu="recipes">Drink Recipes</button>`:''}</div>`:''}</div>`:''}`; }
+  function inventory(){ { const open=invOpen(); if(open.length===1) S.invKind=open[0]; } INV=INVS[S.invKind]||INVS.bar; return S.rec.on? `<div class="invtop"><button type="button" class="mini" data-rec="close">← Back to inventory</button></div>`+recipesView() : `<div class="invtop">${invSwitch()}</div>`+inventoryInner(); }
+
+  // ---- Drink recipes (bar): how much of each bottle goes into each Toast drink ----
+  const recId=n=>String(n||'').toLowerCase().replace(/&amp;/g,'and').replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||('drink-'+Date.now().toString(36));
+  const prodName=id=>{ const p=S.inv.cat.find(x=>x.id===id); return p? p.n : (id||'—'); };
+  function prodOptions(sel){ const by={}; S.inv.cat.forEach(p=>{ (by[p.g||'Other']=by[p.g||'Other']||[]).push(p); });
+    return `<option value="">Pick a bottle…</option>`+Object.keys(by).sort().map(g=>`<optgroup label="${esc(g)}">${by[g].map(p=>`<option value="${esc(p.id)}"${p.id===sel?' selected':''}>${esc(p.n)}${p.s?' ('+esc(p.s)+')':''}</option>`).join('')}</optgroup>`).join(''); }
+  const pourText=r=>(r.pours||[]).filter(x=>x.p).map(x=>`${esc(prodName(x.p))} ${+x.oz||0} oz${x.base?' ★':''}`).join(' · ');
+  function recipesView(){
+    const R=S.rec, all=Object.values(S.recipes).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    const head=`<div><h1>Drink Recipes</h1><div class="sub">How much of each bottle goes into every drink rung in Toast. I use these to compare bottles used with drinks sold.</div></div>
+      <div class="seg" role="tablist" style="margin:10px 0"><button type="button" role="tab" class="${R.tab==='drinks'?'on':''}" aria-selected="${R.tab==='drinks'}" data-rectab="drinks">Drinks (${all.length})</button><button type="button" role="tab" class="${R.tab==='mods'?'on':''}" aria-selected="${R.tab==='mods'}" data-rectab="mods">Liquor choices (${S.recMods.length})</button></div>`;
+    if(!S.inv.cat.length) return head+'<div class="empty">Loading the bar product list…</div>';
+    if(R.tab==='mods') return head+recModsView();
+    if(R.edit) return head+recForm();
+    const q=R.q.trim().toLowerCase(); const f=all.filter(r=>!q||String(r.name).toLowerCase().includes(q)||(r.aka||[]).join(' ').toLowerCase().includes(q)||pourText(r).toLowerCase().includes(q));
+    const need=f.filter(r=>!(r.pours||[]).some(x=>x.p)), done=f.filter(r=>(r.pours||[]).some(x=>x.p));
+    const row=r=>`<li><button type="button" class="recrow" data-recedit="${esc(r.id)}"><b>${esc(r.name)}</b>${(r.aka||[]).length?` <span class="note">also ${esc(r.aka.join(', '))}</span>`:''}<div class="note">${pourText(r)||'No bottles yet'}${r.check?` · <span style="color:var(--warn)">${esc(r.check)}</span>`:''}</div></button></li>`;
+    return head+`<div class="invtools"><input class="search" id="recq" type="search" placeholder="Find a drink or bottle" value="${esc(R.q)}" autocomplete="off" aria-label="Find a drink or bottle"><button type="button" class="btn" data-recedit="new">+ Add drink</button></div>
+      ${need.length?`<section class="card"><h2>Needs a recipe (${need.length})</h2><div class="note">Sold in Toast in the last 30 days but no bottles set yet.</div><ul class="reclist">${need.map(row).join('')}</ul></section>`:''}
+      <section class="card"><h2>Recipes (${done.length})</h2><ul class="reclist">${done.map(row).join('')||'<li class="note">None yet.</li>'}</ul><div class="note">★ = the bottle a liquor choice in Toast replaces (e.g. Titos instead of house vodka).</div></section>`;
+  }
+  function recForm(){ const R=S.rec, d=R.draft||{name:'',aka:[],pours:[{p:'',oz:1.5,base:true}],notes:''};
+    return `<section class="card"><h2>${R.edit==='new'?'Add a drink':'Edit '+esc(d.name)}</h2>
+    <form class="newform recform" data-recform="1">
+      <label for="rf-name">Name in Toast<input id="rf-name" required value="${esc(d.name)}" placeholder="e.g. Margaritas"></label>
+      <label for="rf-aka">Also rung as (optional, separate with commas)<input id="rf-aka" value="${esc((d.aka||[]).join(', '))}" placeholder="e.g. HH Fishermen's Margarita"></label>
+      <div class="rfh">Bottles in this drink</div>
+      ${(d.pours||[]).map((x,i)=>`<div class="rfrow" data-rfrow="${i}"><select class="rf-p" aria-label="Bottle ${i+1}">${prodOptions(x.p)}</select><input class="rf-oz" inputmode="decimal" value="${x.oz??''}" aria-label="Ounces for bottle ${i+1}"><span class="note">oz</span><label class="chk" title="A liquor choice in Toast replaces this bottle"><input type="radio" name="rf-base" class="rf-base" ${x.base?'checked':''}> ★</label><button type="button" class="mini" data-rfdel="${i}" aria-label="Remove bottle ${i+1}">✕</button></div>`).join('')}
+      <button type="button" class="mini" data-rfadd="1">+ Add bottle</button>
+      <div class="note">★ marks the bottle that a liquor choice (Titos, Patron, Grey Goose…) replaces. Juices, syrups and garnish don't need to be listed.</div>
+      <label for="rf-notes">Notes (optional)<textarea id="rf-notes" rows="2">${esc(d.notes||'')}</textarea></label>
+      <div class="bagbtns"><button type="submit" class="btn">Save</button><button type="button" class="btn ghost" data-recedit="">Cancel</button>${R.edit!=='new'?(R.confirmDel?`<span class="cancelwarn"><b>Delete this recipe?</b> <button type="button" class="mini danger" data-recdel="yes">Yes, delete</button> <button type="button" class="mini" data-recdel="no">Keep</button></span>`:`<button type="button" class="mini cancelbtn" data-recdel="ask">Delete</button>`):''}</div>
+      ${d.updatedBy?`<div class="note">Last updated by ${esc(d.updatedBy)}${d.updatedAt?' · '+new Date(d.updatedAt).toLocaleDateString('en-US',{month:'numeric',day:'numeric'}):''}</div>`:''}
+    </form></section>`; }
+  function readRecForm(){ const f=document.querySelector('[data-recform]'); if(!f) return S.rec.draft; const rows=[...f.querySelectorAll('[data-rfrow]')];
+    return {...(S.rec.draft||{}), name:f.querySelector('#rf-name').value.trim(), aka:f.querySelector('#rf-aka').value.split(',').map(x=>x.trim()).filter(Boolean),
+      pours:rows.map(r=>({p:r.querySelector('.rf-p').value, oz:+String(r.querySelector('.rf-oz').value).replace(',','.')||0, base:r.querySelector('.rf-base').checked})), notes:f.querySelector('#rf-notes').value.trim()}; }
+  const MODT={swap:'Swaps ★ to',add:'Adds',none:'No effect'};
+  function recModsView(){ const R=S.rec; const list=R.mods||S.recMods; const q=R.q.trim().toLowerCase();
+    return `<section class="card"><h2>Liquor choices and other Toast modifiers</h2><div class="note">When a bartender picks a choice in Toast (Vodka Upgrade → Titos, Cadillac, Tall…), this says what it does to the bottles. Anything not listed has no effect.</div>
+    <div class="invtools"><input class="search" id="recq" type="search" placeholder="Find a choice" value="${esc(R.q)}" autocomplete="off" aria-label="Find a choice"></div>
+    <div class="rmlist">${list.map((m,i)=>({m,i})).filter(({m})=>!q||String(m.name).toLowerCase().includes(q)||prodName(m.p).toLowerCase().includes(q)).map(({m,i})=>`<div class="rmrow" data-rmrow="${i}"><div class="rmtop"><input class="rm-name" value="${esc(m.name||'')}" placeholder="Choice name in Toast" aria-label="Choice name in Toast"><button type="button" class="mini" data-rmdel="${i}" aria-label="Remove ${esc(m.name||'choice')}">✕</button></div><div class="rmbot"><select class="rm-type" aria-label="What it does">${Object.entries(MODT).map(([k,l])=>`<option value="${k}"${(m.type||'swap')===k?' selected':''}>${l}</option>`).join('')}</select><select class="rm-p" aria-label="Bottle">${prodOptions(m.p)}</select><input class="rm-oz" inputmode="decimal" value="${m.oz??''}" placeholder="oz" aria-label="Ounces (for Add a pour)"></div></div>`).join('')}</div>
+    <div class="bagbtns"><button type="button" class="mini" data-rmadd="1">+ Add choice</button><button type="button" class="btn" data-rmsave="1">${R.mods?'Save changes':'Saved'}</button>${R.mods?`<button type="button" class="btn ghost" data-rmcancel="1">Undo changes</button>`:''}</div>
+    <div class="note"><b>Swaps ★ to</b>: the drink uses this bottle instead of its ★ bottle (Titos instead of house vodka). <b>Adds</b>: an extra pour; with no bottle picked it's more of the ★ bottle (Tall = +1.5 oz).</div></section>`; }
+  function readMods(){ const rows=[...document.querySelectorAll('[data-rmrow]')]; const list=(S.rec.mods||S.recMods).map(x=>({...x}));
+    rows.forEach(r=>{ const i=+r.dataset.rmrow; const oz=r.querySelector('.rm-oz').value.trim(); list[i]={...list[i], name:r.querySelector('.rm-name').value.trim(), type:r.querySelector('.rm-type').value, p:r.querySelector('.rm-p').value, oz:oz===''?null:+oz.replace(',','.')}; });
+    return list; }
+
   function inventoryInner(){
     const I=INV.st, L=ilast(), today=new Date().toLocaleDateString('en-CA');
     if(!I.cat.length) return `<div><h1>${INV.label} inventory</h1></div><div class="empty">${I.catErr?'Couldn\'t load the product list: '+esc(I.catErr):'Loading the product list…'}</div>`;
@@ -1249,6 +1301,12 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     window.__getZoom=()=>z;
     window.__setZoomLocal=v=>{ z=+v; apply(); };
   })();
+  document.addEventListener('submit',async e=>{ const f=e.target.closest('[data-recform]'); if(!f) return; e.preventDefault();
+    const d=readRecForm(); if(!d.name){ return; } d.pours=(d.pours||[]).filter(x=>x.p&&x.oz>0); if(d.pours.length&&!d.pours.some(x=>x.base)) d.pours[0].base=true;
+    const id=S.rec.edit==='new'? recId(d.name) : S.rec.edit; if(S.rec.edit==='new'&&S.recipes[id]){ alertBox('There is already a recipe called '+d.name+'.'); return; }
+    const me=window.__hqMe||{}; const doc={name:d.name,aka:d.aka||[],pours:d.pours,notes:d.notes||'',updatedBy:me.name||me.email||'',updatedAt:new Date().toISOString()};
+    if(S.rec.draft&&S.rec.draft.toast) doc.toast=S.rec.draft.toast;
+    try{ await window.__db.collection('invrecipes').doc(id).set(doc); S.rec.edit=null; S.rec.draft=null; render(); }catch(x){ alertBox("Couldn't save that recipe. Check your connection."); } });
   document.addEventListener('submit',async e=>{ const f=e.target.closest('[data-newprod]'); if(!f) return; e.preventDefault();
     const name=document.getElementById('np-name').value.trim(); if(!name) return; const g=document.getElementById('np-type').value; const sz=document.getElementById('np-size').value.trim();
     const id=('new-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')).slice(0,60); if(INV.st.cat.some(x=>x.id===id||x.n.toLowerCase()===name.toLowerCase())){ alertBox(name+' is already on the list. Search for it.'); return; }
@@ -1256,13 +1314,15 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     try{ await window.__db.collection(INV.pfx+'new').doc(id).set({id,n:name,g:g==='New / Other'?'New products':g,s:sz,i,isNew:true,addedOn:INV.st.cur.date,addedIn:f.dataset.newprod,addedAt:new Date().toISOString()}); INV.st.adding=false; INV.st.q=''; INV.st.all=true; render(); setTimeout(()=>{const el=document.getElementById(`in-${f.dataset.newprod}-${id}`); el&&(el.scrollIntoView({block:'center'}),el.focus());},300); }
     catch(err){ alertBox("Couldn't add that product. Try again."); } });
   document.addEventListener('change',async e=>{ const t=e.target;
+    if(t.closest('[data-rmrow]')){ const was=!!S.rec.mods; S.rec.mods=readMods(); if(!was) render(); return; }
     if(t.matches('.ipar')){ const raw=t.value.trim().replace(',','.'); const v=raw===''?null:+raw; if(raw!==''&&(isNaN(v)||v<0)) return; INV.st.pars=INV.st.pars||{}; INV.st.pars[t.dataset.p]={par:v}; try{ await window.__db.collection(INV.pfx+'par').doc(t.dataset.p).set({par:v,updatedAt:new Date().toISOString()}); }catch(x){ alertBox("Couldn't save the par."); } render(); return; }
     if(t.matches('.iord')){ const raw=t.value.trim(); const v=raw===''?null:Math.max(0,Math.round(+raw)); const e=INV.st.entries[t.dataset.p]||{pid:t.dataset.p}; e.order=v; INV.st.entries[t.dataset.p]=e; const key=INV.st.cur.key||INV.st.cur.date; try{ await window.__db.collection(INV.pfx+'entries').doc(`${key}--${t.dataset.p}`).set({date:INV.st.cur.date,key,pid:t.dataset.p,...Object.fromEntries(INV.areas.map(([k])=>[k,e[k]??null])),order:v,updatedAt:new Date().toISOString()}); }catch(x){} render(); return; }
     if(t.matches('.ictl input')){ const raw=t.value.trim().replace(',','.'); if(raw===''){ await isave(t.dataset.p,t.dataset.a,null); render(); return; } if(isNaN(+raw)||+raw<0) return; await isave(t.dataset.p,t.dataset.a,+(+raw).toFixed(2)); render(); return; }
     if(t.id==='iall'){ INV.st.all=t.checked; render(); return; }
     if(t.id==='iph'&&t.files&&t.files[0]){ const m=document.getElementById('iphmsg'); m.textContent='Uploading…'; try{ const as=await claude.use('assets'); const r=await as.upload(t.files[0]); await window.__db.collection(INV.pfx+'photos').doc(r.id).set({date:INV.st.cur.date,assetId:r.id,url:r.url,at:new Date().toISOString()}); }catch(err){ m.textContent="Couldn't upload that photo. Try again or use a smaller picture."; } }
   });
-  document.addEventListener('input',e=>{ if(e.target.id==='iq'){ INV.st.q=e.target.value; const pos=e.target.selectionStart; render(); const q=document.getElementById('iq'); if(q){ q.focus(); try{q.setSelectionRange(pos,pos);}catch(x){} } } });
+  document.addEventListener('input',e=>{ if(e.target.id==='recq'){ if(S.rec.tab==='mods'&&S.rec.mods) S.rec.mods=readMods(); S.rec.q=e.target.value; const pos=e.target.selectionStart; render(); const q=document.getElementById('recq'); if(q){ q.focus(); try{q.setSelectionRange(pos,pos);}catch(x){} } return; }
+    if(e.target.id==='iq'){ INV.st.q=e.target.value; const pos=e.target.selectionStart; render(); const q=document.getElementById('iq'); if(q){ q.focus(); try{q.setSelectionRange(pos,pos);}catch(x){} } } });
   document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.matches('.ictl input,.ipar,.iord')) e.target.blur(); });
   document.addEventListener('submit',e=>{const f=e.target.closest('[data-dcform]'); if(!f) return; e.preventDefault(); const v=f.querySelector('input').value.replace(/[$,\s]/g,''); if(v===''||isNaN(+v)) return; saveDc(f.dataset.dcform, f.dataset.drawer, f.dataset.kind, +f.dataset.exp, +v);});
   async function saveDc(id, drawer, kind, expected, actual){ const db=window.__db; if(!db) return; const date=id.split('--')[0];
@@ -1291,10 +1351,23 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const ik=e.target.closest('[data-invkind]'); if(ik){ S.invKind=ik.dataset.invkind; INV=INVS[S.invKind]; render(); document.getElementById('main').scrollTop=0; return; }
     INV=INVS[S.invKind]||INVS.bar;
     const mn=e.target.closest('[data-imenu]'); if(mn){ const v=mn.dataset.imenu; if(v==='toggle'){ S.invMenu=!S.invMenu; render(); return; } S.invMenu=false;
-      if(v==='photo'){ INV.st.view='photos'; render(); document.getElementById('main').scrollTop=0; return; }
-      if(v==='order'){ INV.st.view='order'; render(); document.getElementById('main').scrollTop=0; return; }
-      if(v==='add'){ if(!INV.areas.some(([a])=>a===INV.st.view)) INV.st.view=INV.areas[0][0]; INV.st.adding=true; render(); setTimeout(()=>{const n=document.getElementById('np-name'); if(n){ n.scrollIntoView({block:'center'}); n.focus(); }},50); return; } }
+      if(v==='recipes'){ S.rec.on=true; S.rec.edit=null; S.rec.q=''; render(); document.getElementById('main').scrollTop=0; return; }
+      if(v==='photo'){ S.rec.on=false; INV.st.view='photos'; render(); document.getElementById('main').scrollTop=0; return; }
+      if(v==='order'){ S.rec.on=false; INV.st.view='order'; render(); document.getElementById('main').scrollTop=0; return; }
+      if(v==='add'){ S.rec.on=false; if(!INV.areas.some(([a])=>a===INV.st.view)) INV.st.view=INV.areas[0][0]; INV.st.adding=true; render(); setTimeout(()=>{const n=document.getElementById('np-name'); if(n){ n.scrollIntoView({block:'center'}); n.focus(); }},50); return; } }
     if(S.invMenu && !e.target.closest('.imenu')){ S.invMenu=false; render(); }
+    if(e.target.closest('[data-rec="close"]')){ S.rec.on=false; S.rec.edit=null; render(); return; }
+    const rt=e.target.closest('[data-rectab]'); if(rt){ if(S.rec.tab==='mods'&&S.rec.mods){ S.rec.mods=readMods(); } S.rec.tab=rt.dataset.rectab; S.rec.q=''; S.rec.edit=null; render(); return; }
+    const re=e.target.closest('[data-recedit]'); if(re){ const id=re.dataset.recedit; S.rec.confirmDel=false; if(!id){ S.rec.edit=null; S.rec.draft=null; } else if(id==='new'){ S.rec.edit='new'; S.rec.draft={name:S.rec.q,aka:[],pours:[{p:'',oz:1.5,base:true}],notes:''}; } else { S.rec.edit=id; S.rec.draft=JSON.parse(JSON.stringify(S.recipes[id]||{})); if(!(S.rec.draft.pours||[]).length) S.rec.draft.pours=[{p:'',oz:1.5,base:true}]; } render(); document.getElementById('main').scrollTop=0; return; }
+    if(e.target.closest('[data-rfadd]')){ S.rec.draft=readRecForm(); S.rec.draft.pours.push({p:'',oz:0.5,base:false}); render(); return; }
+    const rd=e.target.closest('[data-rfdel]'); if(rd){ S.rec.draft=readRecForm(); S.rec.draft.pours.splice(+rd.dataset.rfdel,1); render(); return; }
+    const rx=e.target.closest('[data-recdel]'); if(rx){ const v=rx.dataset.recdel; if(v==='ask'){ S.rec.draft=readRecForm(); S.rec.confirmDel=true; render(); return; } if(v==='no'){ S.rec.draft=readRecForm(); S.rec.confirmDel=false; render(); return; }
+      try{ await window.__db.collection('invrecipes').doc(S.rec.edit).delete(); S.rec.edit=null; S.rec.draft=null; S.rec.confirmDel=false; render(); }catch(x){ alertBox("Couldn't delete that recipe."); } return; }
+    if(e.target.closest('[data-rmadd]')){ S.rec.mods=readMods(); S.rec.mods.push({name:'',type:'swap',p:'',oz:null}); S.rec.q=''; render(); setTimeout(()=>{ const r=document.querySelectorAll('.rm-name'); const l=r[r.length-1]; l&&(l.scrollIntoView({block:'center'}),l.focus()); },30); return; }
+    const rmd=e.target.closest('[data-rmdel]'); if(rmd){ S.rec.mods=readMods(); S.rec.mods.splice(+rmd.dataset.rmdel,1); render(); return; }
+    if(e.target.closest('[data-rmcancel]')){ S.rec.mods=null; render(); return; }
+    if(e.target.closest('[data-rmsave]')){ if(!S.rec.mods){ return; } const list=readMods().filter(m=>m.name); const me=window.__hqMe||{};
+      try{ await window.__db.doc('invrecmods/map').set({mods:list,updatedBy:me.name||me.email||'',updatedAt:new Date().toISOString()}); S.rec.mods=null; render(); }catch(x){ alertBox("Couldn't save the choices. Check your connection."); } return; }
     const ot=e.target.closest('[data-otext]'); if(ot){ S.orderTxt = S.orderTxt===ot.dataset.otext? null : ot.dataset.otext; render(); return; }
     const oc=e.target.closest('[data-ocopy]'); if(oc){ const ta=document.getElementById(oc.dataset.ocopy); const msg=oc.parentElement.querySelector('[role=status]'); try{ await navigator.clipboard.writeText(ta.value); if(msg) msg.textContent='Copied. Paste it into a text or email.'; }catch(x){ ta.focus(); ta.select(); if(msg) msg.textContent='Text selected. Tap Copy in the menu that appears.'; } return; }
     const op=e.target.closest('[data-oplace]'); if(op){ const v=op.dataset.oplace; const I=INV.st; const items=I.cat.filter(p=>iorder(p.id)>0&&(p.v||'Vendor not set')===v).map(p=>({pid:p.id,name:p.n,size:p.s||'',qty:iorder(p.id),price:p.price??null}));
@@ -1370,6 +1443,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   db.collection(C.pfx+'orderreq').onSnapshot(s=>{ C.st.reqs=s.docs.map(d=>d.data()); if(S.panel==='inventory'&&S.invKind===C.key&&C.st.view==='order') render(); },()=>{});
   db.collection(C.pfx+'par').onSnapshot(s=>{ C.st.pars={}; s.docs.forEach(d=>C.st.pars[d.id]=d.data()); if((S.panel==='inventory'&&S.invKind===C.key) && !(document.activeElement&&document.activeElement.matches('.ipar,.iord,.ictl input'))) render(); },()=>{});
   db.collection(C.pfx+'new').onSnapshot(s=>{ C.st.newp=s.docs.map(d=>({id:d.id,...d.data()})); C.st.cat=[...(C.st.base||[]),...C.st.newp].sort((a,b)=>a.i-b.i); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
+  if(C.key==='bar'){ db.collection('invrecipes').onSnapshot(s=>{ S.recipes={}; s.docs.forEach(d=>S.recipes[d.id]={id:d.id,...d.data()}); if(S.panel==='inventory'&&S.rec.on&&!S.rec.edit) render(); },()=>{}); db.doc('invrecmods/map').onSnapshot(s=>{ S.recMods=s.exists?(s.data().mods||[]):[]; if(S.panel==='inventory'&&S.rec.on&&S.rec.tab==='mods'&&!S.rec.mods) render(); },()=>{}); }
   db.collection(C.pfx+'parts').onSnapshot(s=>{ C.st.base=s.docs.flatMap(d=>d.data().products||[]); C.st.cat=[...C.st.base,...(C.st.newp||[])].sort((a,b)=>a.i-b.i); C.st.catErr=null; if((S.panel==='inventory'&&S.invKind===C.key)) render(); },err=>{ C.st.catErr=String(err&&err.message||err); if((S.panel==='inventory'&&S.invKind===C.key)) render(); });
   db.collection(C.pfx+'history').onSnapshot(s=>{ C.st.hist=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.date.localeCompare(a.date)); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
   db.collection(C.pfx+'photos').onSnapshot(s=>{ C.st.photos=s.docs.map(d=>d.data()); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
