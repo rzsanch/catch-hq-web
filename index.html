@@ -703,6 +703,8 @@ nav.tabs a[hidden]{display:none!important}
 details[open] .glink{visibility:hidden}
 details.evt>summary .resdesc .what::after{content:""}
 .parline{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:2px;padding-top:6px;border-top:1px dashed var(--line);font-size:.78rem;color:var(--muted)}
+.tscroll{overflow:auto;overscroll-behavior:contain}
+.tscroll thead th{position:sticky;top:0;z-index:2;background:var(--surface);box-shadow:0 1px 0 var(--line)}
 .tc .tcell{width:56px;height:32px;text-align:center;border:1px dashed var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:.9rem}
 .tc .tcell:focus{border-style:solid;border-color:#0f4c5c;outline:none;background:var(--surface)}
 .parline .iloc{margin-left:10px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -1439,7 +1441,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(I.view==='totals'){
       const rows=I.cat.filter(p=>vok(p)&&(itot(p.id)||iltot(p.id))).sort((x,y)=>String(x.n).localeCompare(String(y.n),undefined,{sensitivity:'base',numeric:true}));
       const counted=I.cat.filter(p=>INV.areas.some(([a])=>ival(p.id,a)!=null)).length;
-      return title+filt+`<section class="card"><h2>${counted} products counted${I.vend?' · showing '+esc(I.vend):''}</h2><div class="scroll"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="r">Total</th><th class="r">Last</th><th class="r">Par</th><th class="r">Order</th></tr></thead>
+      return title+filt+`<section class="card"><h2>${counted} products counted${I.vend?' · showing '+esc(I.vend):''}</h2><div class="scroll tscroll"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="r">Total</th><th class="r">Last</th><th class="r">Par</th><th class="r">Order</th></tr></thead>
       <tbody>${rows.map(p=>`<tr><td>${esc(p.n)}</td>${INV.areas.map(([a,l])=>`<td class="r tc">${I.cur?`<input class="tcell" id="tc-${p.id}-${a}" inputmode="decimal" data-p="${p.id}" data-a="${a}" value="${ival(p.id,a)??''}" placeholder="–" aria-label="${esc(p.n)} in ${esc(l)}">`:(ival(p.id,a)??'')}</td>`).join('')}<td class="r"><b>${+itot(p.id).toFixed(2)}</b></td><td class="r">${+iltot(p.id).toFixed(2)||'–'}</td><td class="r">${ipar(p.id)??'–'}</td><td class="r">${iorder(p.id)?`<b style="color:var(--warn)">${iorder(p.id)}</b>`:'–'}</td></tr>`).join('')}</tbody></table></div>
       <div class="note">Wednesday morning I'll work out usage (last count + deliveries − this count) and compare it with Toast sales and invoice costs.</div></section>`
     }
@@ -1515,7 +1517,9 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     m.innerHTML = {glance:()=>glance(S.day),drawers:()=>drawers(S.day),tipouts:()=>tipouts(S.day),discounts:()=>discounts(S.day),promos,events,reservations,inventory,clockins,settings,admin}[S.panel]();
   }
   function moveCtrls(){ const m=$('main'), c=$('ctrls'); c.innerHTML=''; const title=[...m.children].find(el=>el.tagName==='DIV'&&el.firstElementChild&&el.firstElementChild.tagName==='H1'); const ht=$('htitle'); ht.innerHTML=''; if(title){ const h1=title.querySelector(':scope > h1'); if(h1) ht.appendChild(h1); if(title.children.length){ title.classList.add('ptitle'); c.appendChild(title); } } document.body.classList.toggle('has-ptitle', !!ht.children.length); [...m.children].filter(el=>el.matches('.invtop')).forEach(el=>{ if(!ht.children.length){ c.appendChild(el); return; } const slot=ht.querySelector('h1 .bagbtns'); if(slot&&!el.querySelector('[data-rec]')){ [...el.children].forEach(x=>slot.appendChild(x)); } else { el.classList.add('hinv'); ht.appendChild(el); } }); [...m.children].filter(el=>el.matches('.seg,.wkpick,.ifilters,.invtools')).forEach(el=>c.appendChild(el)); c.hidden=!c.children.length; }
-  const _render=render; render=function(){ _render(); moveCtrls(); };
+  const fitTotals=()=>{ const t=document.querySelector('.tscroll'), m=$('main'); if(!t||!m) return; const top=t.getBoundingClientRect().top-m.getBoundingClientRect().top+m.scrollTop; t.style.maxHeight=Math.max(Math.round(m.clientHeight*0.6),m.clientHeight-(top-m.scrollTop<0?0:top-m.scrollTop)-16)+'px'; };
+  const _render=render; render=function(){ const ts=document.querySelector('.tscroll'), keepY=ts?ts.scrollTop:0, keepX=ts?ts.scrollLeft:0; _render(); moveCtrls(); const n=document.querySelector('.tscroll'); if(n){ fitTotals(); n.scrollTop=keepY; n.scrollLeft=keepX; } };
+  window.addEventListener('resize',fitTotals);
   document.addEventListener('focusin',e=>{ if(e.target.matches&&e.target.matches('.tcell')){ window.__tcBusy=true; clearTimeout(window.__tcT); } });
   document.addEventListener('focusout',e=>{ if(e.target.matches&&e.target.matches('.tcell')&&!(e.relatedTarget&&e.relatedTarget.matches&&e.relatedTarget.matches('.tcell'))){ clearTimeout(window.__tcT); window.__tcT=setTimeout(()=>{ window.__tcBusy=false; if(S.panel==='inventory') render(); },400); } });
   const hdr=document.querySelector('header'); const setHH=()=>document.documentElement.style.setProperty('--hh', hdr.offsetHeight+'px'); setHH(); try{ new ResizeObserver(setHH).observe(hdr); }catch(e){ window.addEventListener('resize',setHH); }
