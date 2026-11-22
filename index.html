@@ -9,6 +9,7 @@
       <input id="gate-email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" required placeholder="you@fishermenscatch.com">
       <label for="gate-pw">Password</label>
       <input id="gate-pw" type="password" autocomplete="current-password" required>
+      <label class="gateshow"><input id="gate-show-login" type="checkbox"> Show password</label>
       <button id="gate-login" class="btn" type="submit">Sign in</button>
       <button id="gate-forgot" class="linkbtn" type="button">Forgot password?</button>
       <button id="gate-to-create" class="linkbtn" type="button">First time? Create your password</button>
@@ -21,6 +22,8 @@
       <input id="gate-new-pw" type="password" autocomplete="new-password" required minlength="8">
       <label for="gate-new-pw2">Type it again</label>
       <input id="gate-new-pw2" type="password" autocomplete="new-password" required minlength="8">
+      <div id="gate-match" class="gatematch" aria-live="polite"></div>
+      <label class="gateshow"><input id="gate-show-new" type="checkbox"> Show passwords</label>
       <button id="gate-create" class="btn" type="submit">Create password and sign in</button>
       <button id="gate-to-login" class="linkbtn" type="button">I already have a password</button>
     </form>
@@ -39,6 +42,10 @@
 .gatebox input{font:inherit;font-size:1.05rem;padding:12px;border:1px solid var(--line,#d5dde3);border-radius:10px;background:var(--surface,#fff);color:var(--ink,#15262b)}
 .gatebox .btn{justify-self:stretch;padding:12px}
 .gatebox p{margin:0}
+.gatebox label.gateshow{display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer;min-height:44px}
+.gatebox label.gateshow input{width:22px;height:22px;padding:0;margin:0}
+.gatematch{font-size:.9rem;min-height:1.2em}
+.gatematch.ok{color:#2e7d32}.gatematch.bad{color:#b3261e}
 .linkbtn{font:inherit;background:none;border:0;color:var(--teal,#0f4c5c);text-decoration:underline;padding:6px;cursor:pointer}
 .gatemsg{background:var(--warn-bg,#fff7e0);border:1px solid var(--warn-line,#f0d58c);border-radius:10px;padding:10px 12px;text-align:left;font-size:.95rem}
 </style>
@@ -464,6 +471,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     $('gate-form-create').addEventListener('submit', createPw);
     $('gate-to-create').addEventListener('click', () => { $('gate-new-email').value = $('gate-email').value; show('create'); });
     $('gate-to-login').addEventListener('click', () => show('login'));
+    const showPw = (cb, ids) => $(cb).addEventListener('change', e => ids.forEach(i => { $(i).type = e.target.checked ? 'text' : 'password'; }));
+    showPw('gate-show-login', ['gate-pw']);
+    showPw('gate-show-new', ['gate-new-pw', 'gate-new-pw2']);
+    const checkMatch = () => { const a = $('gate-new-pw').value, b = $('gate-new-pw2').value, m = $('gate-match');
+      if (!b) { m.textContent = ''; m.className = 'gatematch'; return; }
+      if (a.length < 8) { m.textContent = 'Use 8 or more characters.'; m.className = 'gatematch bad'; return; }
+      m.textContent = a === b ? '✓ Passwords match' : "Passwords don't match yet"; m.className = 'gatematch ' + (a === b ? 'ok' : 'bad'); };
+    $('gate-new-pw').addEventListener('input', checkMatch); $('gate-new-pw2').addEventListener('input', checkMatch);
     $('gate-forgot').addEventListener('click', () => show('login', 'Ask Rick or Dave to reset it. They set a temporary password for you in Settings → Team access, then you sign in with it here.'));
     $('gate-retry').addEventListener('click', signOut);
     const { data } = await sb.auth.getSession();
