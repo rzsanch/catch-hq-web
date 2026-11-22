@@ -336,29 +336,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       ${r && r.status === 'needs-signin' ? `<div class="note" style="color:var(--warn)">Last request couldn't run: ${esc(r.message || 'a sign-in is needed on Rick\'s computer')}.</div>` : ''}
       <div class="bagbtns"><button type="button" class="btn" data-refresh-now ${pending ? 'disabled' : ''}>${pending ? 'Refresh requested' : 'Refresh data now'}</button></div>`;
   }
-  async function fillPush(el) {
-    el.dataset.filled = '1';
-    const [{ data: reqs }, { data: last }] = await Promise.all([
-      sb.from('docs').select('data').eq('collection', 'invmenureq').in('data->>status', ['pending']),
-      sb.from('docs').select('data').eq('collection', 'ownerrefresh').eq('id', 'push').maybeSingle()
-    ]);
-    const n = (reqs || []).length, l = last && last.data;
-    const recent = l && l.at && Date.now() - Date.parse(l.at) < 5 * 60e3;
-    el.innerHTML = `<div class="note">Sends waiting menu changes to Toast now instead of at the next :11. Claude saves them in Toast unpublished and emails you; you still publish in Toast.</div>
-      <div class="note"><b>${n}</b> change${n === 1 ? '' : 's'} waiting to go into Toast · see Inventory → More → Pending Toast Menu Changes.</div>
-      ${l && l.at ? `<div class="note">Last push: ${esc(fmtWhen(l.at))}${l.by ? ' by ' + esc(l.by) : ''}${recent ? ' · usually done in 5–10 minutes' : ''}</div>` : ''}
-      <div class="note">Rick's computer needs to be on with the Claude app open.</div>
-      <div class="bagbtns"><button type="button" class="btn" data-push-now ${!n || recent ? 'disabled' : ''}>${recent ? 'Pushed, working on it' : n ? 'Push to Toast now' : 'Nothing to push'}</button></div><div class="note" data-push-msg></div>`;
-  }
-  document.addEventListener('click', async e => {
-    const b = e.target.closest('[data-push-now]'); if (!b) return;
-    b.disabled = true; const msg = b.closest('#pushcard').querySelector('[data-push-msg]'); msg.textContent = 'Starting Claude…';
-    const { data, error } = await sb.functions.invoke('push-now', { body: { mode: 'menu' } });
-    let err = data && data.error;
-    if (error && !err) { try { err = (await error.context.json()).error; } catch (x) { err = "Couldn't reach the server."; } }
-    if (err) { msg.textContent = err; b.disabled = false; return; }
-    fillPush(b.closest('#pushcard'));
-  });
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-refresh-now]'); if (!b) return;
     b.disabled = true;
@@ -470,8 +447,6 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (t && !t.dataset.filled) fillTeam(t);
     const bc = document.getElementById('bandscard');
     if (bc && !bc.dataset.filled) fillBands(bc);
-    const pc = document.getElementById('pushcard');
-    if (pc && !pc.dataset.filled) fillPush(pc);
     const rc = document.getElementById('refreshcard');
     if (rc && !rc.dataset.filled) fillRefresh(rc);
     const dc = document.getElementById('datacard');
@@ -1123,7 +1098,6 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   applyLook();
   function admin(){
     return `<div><h1>Admin</h1><div class="sub">Owners only · Rick and Dave</div></div>
-    <details class="card admsec" open><summary><h2>Push to Toast</h2></summary><div id="pushcard"></div></details>
     <details class="card admsec"><summary><h2>Refresh data</h2></summary><div id="refreshcard"></div></details>
     <details class="card admsec"><summary><h2>Entertainment</h2></summary><div id="bandscard"></div></details>
     <details class="card admsec"><summary><h2>Team and passwords</h2></summary><div id="teamcard"></div></details>
@@ -1207,17 +1181,20 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(!cur && (t.toastId==='none'||!t.toastId) && (t.newPrice||t.newGroup)){
       const grp=S.tmenu.find(i=>i.groupId===t.newGroup); const exist=S.menureqs.find(q=>q.type==='new'&&q.rid===id&&q.status==='pending');
       await db.collection('invmenureq').doc(exist?exist.id:'new-'+id).set({type:'new',kind,rid:id,name:doc.name,price:t.newPrice===''?null:+t.newPrice,menu:grp?grp.menu:'',group:grp?grp.group:'',groupId:t.newGroup||'',description:t.newDesc||'',section:doc.section||'',recipe:lines,notes:doc.notes||'',requestedBy:who,requestedAt:now,status:'pending'}); } }
-  const MQTYPE={new:'New item',rename:'Rename',price:'Price',sizeprice:'Size price',modprice:'Upgrade price',modnew:'New upgrade'};
-  const mqWhat=q=> q.type==='sizeprice'?esc(q.size)+' · '+fmtp(q.from)+' → '+fmtp(q.to):q.type==='modnew'?fmtp(q.price)+' · '+esc(q.group):q.type==='modprice'?esc(q.group)+' · '+fmtp(q.from)+' → '+fmtp(q.to):q.type==='rename'?esc(q.from)+' → '+esc(q.to):q.type==='new'?(q.price!=null?fmtp(q.price)+' · ':'')+esc(q.menu||'')+(q.group?' · '+esc(q.group):''):fmtp(q.from)+' → '+fmtp(q.to);
+  const MQTYPE={new:'New item',rename:'Rename',price:'Price',sizeprice:'Size price',modprice:'Upgrade price',modnew:'New upgrade',undonew:'Remove new item',undomodnew:'Remove new upgrade'};
+  const mqLabel=q=>(q.rollbackOf?'Rollback · ':'')+(MQTYPE[q.type]||esc(q.type));
+  const mqWhat=q=> q.type==='undonew'||q.type==='undomodnew'?esc(q.group||q.menu||''):q.type==='sizeprice'?esc(q.size)+' · '+fmtp(q.from)+' → '+fmtp(q.to):q.type==='modnew'?fmtp(q.price)+' · '+esc(q.group):q.type==='modprice'?esc(q.group)+' · '+fmtp(q.from)+' → '+fmtp(q.to):q.type==='rename'?esc(q.from)+' → '+esc(q.to):q.type==='new'?(q.price!=null?fmtp(q.price)+' · ':'')+esc(q.menu||'')+(q.group?' · '+esc(q.group):''):fmtp(q.from)+' → '+fmtp(q.to);
   const mqWhen=v=>{ if(!v) return ''; const d=new Date(v); return isNaN(d)? String(v) : d.toLocaleString('en-US',{timeZone:'America/Los_Angeles',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); };
   const mqArea=q=> /^mod/.test(q.type)?'well':(q.kind==='food'?'food':'bar');
   function menuChangesView(){ const L=S.mq; const qq=L.q.trim().toLowerCase();
     const all=S.menureqs.slice().sort((a,b)=>String(b.requestedAt).localeCompare(String(a.requestedAt)));
     const open=all.filter(q=>q.status!=='published'&&q.status!=='dismissed');
-    const stat=q=> q.status==='pending'?['Waiting for Claude to put it in Toast','var(--warn)'] : q.status==='in-toast'?['In Toast, ready for an owner to review and publish','var(--warn)'] : q.status==='published'?['Published','var(--ok,#2e7d32)'] : q.status==='failed'?['Couldn\'t do it'+(q.message?': '+q.message:''),'var(--bad,#c62828)'] : q.status==='dismissed'?['Dismissed','var(--muted,#888)'] : [q.status||'?',''];
-    const row=(q,btns)=>{ const [t,c]=stat(q); return `<li class="recrow" style="cursor:default"><b>${MQTYPE[q.type]||esc(q.type)}${q.type==='rename'?'':': '+esc(q.name||'')}</b> <span class="note">${mqWhat(q)}</span><div class="note">Asked by ${esc(q.requestedBy||'?')} · ${esc(mqWhen(q.requestedAt))}</div><div class="note"><span style="color:${c}">${esc(t)}</span>${q.doneAt?' · in Toast '+esc(mqWhen(q.doneAt)):''}${q.clearedAt?' · '+(q.status==='dismissed'?'dismissed':'marked published')+' '+esc(mqWhen(q.clearedAt))+(q.clearedBy?' by '+esc(q.clearedBy):''):''}</div>${btns&&S.isOwner&&(q.status==='in-toast'||q.status==='failed')?`<div class="bagbtns"><button type="button" class="mini" data-mqdone="${esc(q.id)}">${q.status==='failed'?'Dismiss':'Published, clear it'}</button></div>`:''}</li>`; };
+    const stat=q=> q.status==='pending'?['Waiting for Claude to put it in Toast','var(--warn)'] : q.status==='in-toast'?['In Toast, ready for an owner to review and publish','var(--warn)'] : q.status==='published'?['Published','var(--ok,#2e7d32)'] : q.status==='failed'?['Couldn\'t do it'+(q.message?': '+q.message:''),'var(--bad,#c62828)'] : q.status==='dismissed'?['Dismissed','var(--muted,#888)'] : q.status==='needs-owner'?['Waiting on an owner: '+(q.message||'finish this one in Toast'),'var(--warn)'] : [q.status||'?',''];
+    const rbOf=id=>S.menureqs.find(x=>x.id===id); const canRb=q=>S.full&&(q.status==='in-toast'||q.status==='published')&&!q.rolledBack&&!/^undo/.test(q.type);
+    const rbUI=q=>{ if(q.rolledBack){ const r=rbOf(q.rolledBack); return `<div class="note">Rolled back${r?' by '+esc(r.requestedBy||'?')+' · '+esc(mqWhen(r.requestedAt)):''}</div>`; } if(!canRb(q)) return ''; if(L.confirm===q.id) return `<div class="note"><b>Send a rollback to Toast?</b> ${q.type==='new'||q.type==='modnew'?'Claude will ask an owner to remove it in Toast (Claude never deletes from Toast).':'Claude will put back '+esc(q.type==='rename'?'the name "'+(q.from||'')+'"':fmtp(q.from))+'.'} You still publish in Toast.</div><div class="bagbtns"><button type="button" class="mini" data-mqrbyes="${esc(q.id)}">Yes, roll it back</button><button type="button" class="mini" data-mqrbno>Cancel</button></div>`; return `<div class="bagbtns"><button type="button" class="mini" data-mqrb="${esc(q.id)}">Roll back</button></div>`; };
+    const row=(q,btns)=>{ const [t,c]=stat(q); return `<li class="recrow" style="cursor:default"><b>${mqLabel(q)}${q.type==='rename'?'':': '+esc(q.name||'')}</b> <span class="note">${mqWhat(q)}</span><div class="note">Asked by ${esc(q.requestedBy||'?')} · ${esc(mqWhen(q.requestedAt))}</div><div class="note"><span style="color:${c}">${esc(t)}</span>${q.doneAt?' · in Toast '+esc(mqWhen(q.doneAt)):''}${q.clearedAt?' · '+(q.status==='dismissed'?'dismissed':'marked published')+' '+esc(mqWhen(q.clearedAt))+(q.clearedBy?' by '+esc(q.clearedBy):''):''}</div>${q.rollbackOf&&rbOf(q.rollbackOf)?`<div class="note">Undoes the change from ${esc(mqWhen(rbOf(q.rollbackOf).requestedAt))} by ${esc(rbOf(q.rollbackOf).requestedBy||'?')}</div>`:''}${btns&&S.isOwner&&(q.status==='in-toast'||q.status==='failed'||q.status==='needs-owner')?`<div class="bagbtns"><button type="button" class="mini" data-mqdone="${esc(q.id)}">${q.status==='failed'?'Dismiss':q.status==='needs-owner'?'Done in Toast, clear it':'Published, clear it'}</button></div>`:''}${rbUI(q)}</li>`; };
     const tab=(v,t)=>`<button type="button" role="tab" class="${L.tab===v?'on':''}" aria-selected="${L.tab===v}" data-mqtab="${v}">${t}</button>`;
-    const head=`<div><h1>Pending Toast Menu Changes</h1><div class="sub">Menu changes made in the app go into Toast unpublished; an owner reviews and publishes them in Toast. The history keeps every change, and nothing is ever removed from it.</div></div>
+    const head=`<div><h1>Pending Toast Menu Changes</h1><div class="sub">Menu changes made in the app go into Toast unpublished; an owner reviews and publishes them in Toast. The history keeps every change, and nothing is ever removed from it. Tap <b>Roll back</b> on a change that went through to send the old value back to Toast.</div></div>
       <div class="seg" role="tablist" style="margin:10px 0">${tab('pending','Pending ('+open.length+')')}${tab('log','History ('+all.length+')')}</div>`;
     if(L.tab==='pending') return head+(open.length?`<section class="card"><ul class="reclist">${open.map(q=>row(q,true)).join('')}</ul>${S.isOwner?'<div class="note">After you publish in Toast, tap <b>Published, clear it</b>. It stays in History.</div>':''}</section>`:'<div class="empty">Nothing waiting. All menu changes are published.</div>');
     const f=all.filter(q=>(L.f==='all'||mqArea(q)===L.f)&&(!qq||[q.name,q.from,q.to,q.group,q.menu,q.requestedBy,q.size].join(' ').toLowerCase().includes(qq)));
@@ -1551,6 +1528,18 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       if(v==='order'){ S.rec.on=false; S.mq.on=false; INV.st.view='order'; render(); document.getElementById('main').scrollTop=0; return; }
       if(v==='add'){ S.rec.on=false; S.mq.on=false; if(!INV.areas.some(([a])=>a===INV.st.view)) INV.st.view=INV.areas[0][0]; INV.st.adding=true; render(); setTimeout(()=>{const n=document.getElementById('np-name'); if(n){ n.scrollIntoView({block:'center'}); n.focus(); }},50); return; } }
     if(S.invMenu && !e.target.closest('.imenu')){ S.invMenu=false; render(); }
+    const rb=e.target.closest('[data-mqrb]'); if(rb){ S.mq.confirm=rb.dataset.mqrb; render(); return; }
+    if(e.target.closest('[data-mqrbno]')){ S.mq.confirm=null; render(); return; }
+    const rby=e.target.closest('[data-mqrbyes]'); if(rby){ const q=S.menureqs.find(x=>x.id===rby.dataset.mqrbyes); if(!q||q.rolledBack) return; rby.disabled=true;
+      const me=window.__hqMe||{}; const now=new Date().toISOString(); const rid='rb-'+q.id.slice(0,60)+'-'+Date.now().toString(36);
+      const {id:_x,status:_s,doneAt:_d,clearedAt:_c,clearedBy:_cb,rolledBack:_r,message:_m,...base}=q;
+      let d={...base,rollbackOf:q.id,requestedBy:me.name||me.email||'',requestedAt:now,status:'pending'};
+      if(q.type==='rename') d={...d,from:q.to,to:q.from,name:q.from};
+      else if(q.type==='new') d={...d,type:'undonew',toastId:q.toastItemId||q.toastId||''};
+      else if(q.type==='modnew') d={...d,type:'undomodnew',optionId:q.toastItemId||q.optionId||''};
+      else d={...d,from:q.to,to:q.from};
+      try{ const c=window.__db.collection('invmenureq'); await c.doc(rid).set(d); await c.doc(q.id).set({...base,status:q.status,doneAt:q.doneAt||null,clearedAt:q.clearedAt||null,clearedBy:q.clearedBy||null,message:q.message||null,rolledBack:rid}); S.mq.confirm=null; S.mq.tab='pending'; }catch(x){ alertBox("Couldn't send the rollback."); }
+      render(); return; }
     const mq=e.target.closest('[data-mqdone]'); if(mq){ const q=S.menureqs.find(x=>x.id===mq.dataset.mqdone); try{ await window.__db.collection('invmenureq').doc(mq.dataset.mqdone).set({...q,status:q&&q.status==='failed'?'dismissed':'published',clearedAt:new Date().toISOString(),clearedBy:(window.__hqMe||{}).name||(window.__hqMe||{}).email||''}); }catch(x){ alertBox("Couldn't update that."); } return; }
     const mf=e.target.closest('[data-mlogf]'); if(mf){ S.mq.f=mf.dataset.mlogf; render(); return; }
     const mt=e.target.closest('[data-mqtab]'); if(mt){ S.mq.tab=mt.dataset.mqtab; S.mq.q=''; render(); return; }
