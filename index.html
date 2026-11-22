@@ -720,6 +720,12 @@ details.evt>summary .resdesc .what::after{content:""}
 .dd-v{overflow-wrap:anywhere}
 .dd-row{display:grid;grid-template-columns:110px 1fr;gap:10px;font-size:.9rem}
 .dd-l{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
+.owednote{margin-top:8px;padding:10px;border:1px dashed var(--line);border-radius:10px;display:grid;gap:8px;background:var(--bg)}
+.owednote .notetext{font-size:.88rem;line-height:1.4;user-select:text}
+.phrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.phrow .phin{flex:1 1 140px;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
+.linkbtn{background:none;border:0;color:var(--teal);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;padding:0 4px}
+.smsbtn{text-decoration:none;display:inline-block;padding:8px 14px}
 .parline .iloc{margin-left:10px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .parline .iloc select{height:30px;max-width:150px;border:1px dashed var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:.8rem;padding:0 4px}
 .parline input{width:52px;height:30px;text-align:center;border:1px dashed var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:.85rem}
@@ -1000,11 +1006,23 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <tr class="total"><td>Total</td><td class="r">${T('shifts')}</td><td class="r">${c(T('kitchen'))}</td><td class="r">${money(T('left'))}</td><td class="r">${money(T('owed'))}</td><td class="r">${c(T('runner'))}</td><td class="r">${c(T('busser'))}</td><td class="r">${c(T('bar'))}</td><td class="r">${c(T('total'))}</td><td class="r">${money(T('noncash'))}</td></tr></tbody>
     </table></div><div class="note">Mon–Sun totals per person. Tap Day to count bags, or Tips Owed to mark tips paid.</div></section>`;
   }
+  const phoneOf=n=>{ const x=(S.phones||{})[slug(n)]; return x&&x.phone?String(x.phone):''; };
+  const fmtPhone=p=>{ const d=String(p).replace(/\D/g,'').replace(/^1(?=\d{10}$)/,''); return d.length===10?`(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`:p; };
+  const smsNum=p=>{ const d=String(p).replace(/\D/g,''); return d.length===10?'+1'+d:(d.length===11&&d[0]==='1'?'+'+d:d); };
+  function owedNote(n,list){ const me=window.__hqMe||{}; const sender=String(me.name||'').trim().split(/\s+/)[0]||'Management'; const first=String(n).trim().split(/\s+/)[0];
+    const ds=list.map(b=>b.date).sort(); const sd=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); const range=ds.length>1?`${sd(ds[0])}–${sd(ds[ds.length-1])}`:sd(ds[0]);
+    const per=list.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(b=>`${new Date(b.date+'T12:00').toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'})} ${money(owedOf(b))}`).join(', ');
+    const tot=money(list.reduce((a,b)=>a+owedOf(b),0)); const where=/^julio$/i.test(sender)?'give that amount to me in an envelope':'leave that amount in an envelope with Julio';
+    return `Hi ${first}, weekly tip reconciliation (${range}): your tip-outs show the kitchen was shorted ${tot}${list.length>1?` (${per})`:''}. Please ${where} by your next shift. Thanks! — ${sender}`; }
+  function owedNoteUI(n,list){ const k=slug(n), ph=phoneOf(n), note=owedNote(n,list), editing=S.phoneEdit===k;
+    const phoneRow= editing||!ph ? `<div class="phrow"><label for="ph-${k}" class="note">Mobile for ${esc(n.split(' ')[0])}</label><input id="ph-${k}" class="phin" type="tel" inputmode="tel" autocomplete="off" value="${esc(ph)}" placeholder="Phone number" data-phname="${esc(n)}"><button type="button" class="mini" data-phsave="${esc(n)}">Save</button>${editing?`<button type="button" class="mini" data-phcancel="1">Cancel</button>`:''}</div>`
+      : `<div class="phrow note">📱 ${esc(fmtPhone(ph))} <button type="button" class="linkbtn" data-phedit="${esc(k)}">Change</button></div>`;
+    return `<div class="owednote"><div class="notetext">${esc(note)}</div>${phoneRow}<div class="bagbtns">${ph?`<a class="btn smsbtn" href="sms:${encodeURIComponent(smsNum(ph))}?&body=${encodeURIComponent(note)}">Text note</a>`:''}<button type="button" class="mini" data-copynote="${esc(note)}">Copy note</button></div></div>`; }
   function owedSummary(){
-    const open=S.bags.filter(b=>owedOf(b)>0 && !b.paid).sort((a,b)=>a.date.localeCompare(b.date));
+    const open=S.bags.filter(b=>owedOf(b)>0 && !b.paid && !/^Julio\b/i.test(b.server||'')).sort((a,b)=>a.date.localeCompare(b.date));
     const tot=open.reduce((a,b)=>a+owedOf(b),0);
     if(!open.length) return `<section class="card owedbox ok"><h2>Tips still owed</h2><div class="note">Nothing owed. Every counted tip bag is settled.</div></section>`;
-    return `<section class="card owedbox"><h2>Tips still owed · ${money(tot)}</h2><ul class="guests" style="margin:0">${(()=>{const g={}; open.forEach(b=>{const n=b.server.replace(/ \(.*\)$/,''); (g[n]=g[n]||[]).push(b);}); return Object.entries(g).map(([n,list])=>`<li><div class="gtop"><b>${esc(n)}</b><span class="owedamt"><b style="color:var(--warn)">${money(list.reduce((a,b)=>a+owedOf(b),0))}</b><button type="button" class="mini" data-paid="${esc(list.map(b=>b.id).join(','))}">Mark paid</button></span></div>${list.map(b=>`<div class="owedday note"><span>${fmtDay(b.date)} · left ${money(b.actual)} of ${money(b.expected,0)}</span><span>${money(owedOf(b))}</span></div>`).join('')}</li>`).join('');})()}</ul></section>`;
+    return `<section class="card owedbox"><h2>Tips still owed · ${money(tot)}</h2><ul class="guests" style="margin:0">${(()=>{const g={}; open.forEach(b=>{const n=b.server.replace(/ \(.*\)$/,''); (g[n]=g[n]||[]).push(b);}); return Object.entries(g).map(([n,list])=>`<li><div class="gtop"><b>${esc(n)}</b><span class="owedamt"><b style="color:var(--warn)">${money(list.reduce((a,b)=>a+owedOf(b),0))}</b><button type="button" class="mini" data-paid="${esc(list.map(b=>b.id).join(','))}">Mark paid</button></span></div>${list.map(b=>`<div class="owedday note"><span>${fmtDay(b.date)} · left ${money(b.actual)} of ${money(b.expected,0)}</span><span>${money(owedOf(b))}</span></div>`).join('')}${S.full?owedNoteUI(n,list):''}</li>`).join('');})()}</ul>${S.full?'<div class="note">Text note opens Messages with the note filled in; you tap Send. Phone numbers are saved for everyone who can edit The Catch HQ.</div>':''}<div class="msg note" id="bagmsg" role="status"></div></section>`;
   }
   // Julio (manager) never shows in tip-outs: his tips go to the kitchen through a separate process (Rick, Nov 22 2026)
   function tipRows(d){ return ((d&&d.tipouts)||[]).filter(r=>!/^Julio\b/i.test(r.server||'')); }
@@ -1622,6 +1640,10 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const dok=e.target.closest('[data-dcok]'); if(dok){saveDc(dok.dataset.dcok, dok.dataset.drawer, dok.dataset.kind, +dok.dataset.exp, +dok.dataset.exp); return;}
     const ok=e.target.closest('[data-bagok]'); if(ok){saveBag(ok.dataset.bagok, ok.dataset.server, +ok.dataset.exp, +ok.dataset.exp); return;}
     const ed=e.target.closest('[data-bagedit]'); if(ed){S.editing=ed.dataset.bagedit; render(); setTimeout(()=>{const i=document.getElementById('bag-'+S.editing); i&&i.focus();},0); return;}
+    const phs=e.target.closest('[data-phsave]'); if(phs){ const n=phs.dataset.phsave, inp=document.getElementById('ph-'+slug(n)); const raw=(inp&&inp.value||'').trim(); const d=raw.replace(/\D/g,''); if(raw&&!(d.length===10||(d.length===11&&d[0]==='1'))){ alertBox('Enter a 10-digit phone number.'); return; } try{ if(raw) await window.__db.collection('staffphones').doc(slug(n)).set({name:n,phone:raw,updatedBy:(window.__hqMe||{}).name||'',updatedAt:new Date().toISOString()}); else await window.__db.collection('staffphones').doc(slug(n)).delete(); S.phones=S.phones||{}; if(raw) S.phones[slug(n)]={name:n,phone:raw}; else delete S.phones[slug(n)]; S.phoneEdit=null; render(); }catch(x){ alertBox("Couldn't save the phone number. Only owners and GMs can do this."); } return; }
+    const phe=e.target.closest('[data-phedit]'); if(phe){ S.phoneEdit=phe.dataset.phedit; render(); setTimeout(()=>{ const i=document.getElementById('ph-'+phe.dataset.phedit); i&&i.focus(); },0); return; }
+    if(e.target.closest('[data-phcancel]')){ S.phoneEdit=null; render(); return; }
+    const cn=e.target.closest('[data-copynote]'); if(cn){ try{ await navigator.clipboard.writeText(cn.dataset.copynote); alertBox('Note copied. Paste it into a text or message.'); }catch(x){ alertBox('Copy not allowed here; press and hold the note text to copy it.'); } return; }
     const pd=e.target.closest('[data-paid]'); if(pd){markPaid(pd.dataset.paid); return;}
     const tv=e.target.closest('[data-tipview]'); if(tv){S.tipView=tv.dataset.tipview; render(); return;}
     const tw=e.target.closest('[data-tipwk]'); if(tw){S.tipWk=+tw.dataset.tipwk; render(); return;}
@@ -1752,7 +1774,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   db.collection('tipweeks').onSnapshot(s=>{ S.tipHist={}; s.docs.forEach(d=>S.tipHist[d.id]=d.data()); if(S.panel==='tipouts') render(); }, ()=>{});
   db.collection('promoweeks').onSnapshot(s=>{ S.pweeks = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
   db.collection('drawercounts').onSnapshot(s=>{ S.dcounts = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
-  db.collection('tipbags').onSnapshot(s=>{ S.bags = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
+  db.collection('staffphones').onSnapshot(s=>{ S.phones={}; s.docs.forEach(d=>S.phones[d.id]=d.data()); if(!(document.activeElement&&document.activeElement.matches('.phin'))) render(); },()=>{});
+    db.collection('tipbags').onSnapshot(s=>{ S.bags = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
   db.doc('reservations/other').onSnapshot(s=>{ S.other = s.exists? s.data():null; render(); }, ()=>{});
   db.collection('events').onSnapshot(s=>{ S.events = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
   }
