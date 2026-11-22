@@ -1198,7 +1198,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const recId=n=>String(n||'').toLowerCase().replace(/&amp;/g,'and').replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||('drink-'+Date.now().toString(36));
   const prodName=id=>{ const p=S.inv.cat.find(x=>x.id===id); return p? p.n : (id||'—'); };
   function prodOptions(sel){ const by={}; S.inv.cat.forEach(p=>{ (by[p.g||'Other']=by[p.g||'Other']||[]).push(p); });
-    return `<option value="">Pick a bottle…</option>`+Object.keys(by).sort().map(g=>`<optgroup label="${esc(g)}">${by[g].map(p=>`<option value="${esc(p.id)}"${p.id===sel?' selected':''}>${esc(p.n)}${p.s?' ('+esc(p.s)+')':''}</option>`).join('')}</optgroup>`).join(''); }
+    return `<option value="">Pick a product…</option>`+Object.keys(by).sort().map(g=>`<optgroup label="${esc(g)}">${by[g].map(p=>`<option value="${esc(p.id)}"${p.id===sel?' selected':''}>${esc(p.n)}${p.s?' ('+esc(p.s)+')':''}</option>`).join('')}</optgroup>`).join(''); }
   const pourText=r=>(r.pours||[]).filter(x=>x.p).map(x=>`${esc(prodName(x.p))} ${+x.oz||0} oz${houseSpirit(x.p)?' (house)':''}`).join(' · ');
   // ---- Toast menu link: prices, new items and price changes ----
   const tnorm=x=>String(x||'').toLowerCase().replace(/&amp;/g,'&').replace(/[^a-z0-9]+/g,'');
@@ -1329,9 +1329,9 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     <form class="newform recform" data-recform="1">
       <label for="rf-name">Name in Toast<input id="rf-name" required value="${esc(d.name)}" placeholder="e.g. Margaritas"></label>
       <label for="rf-aka">Also rung as (optional, separate with commas)<input id="rf-aka" value="${esc((d.aka||[]).join(', '))}" placeholder="e.g. HH Fishermen's Margarita"></label>
-      <div class="rfh">Bottles in this drink</div>
-      ${(d.pours||[]).map((x,i)=>`<div class="rfrow" data-rfrow="${i}"><select class="rf-p" aria-label="Bottle ${i+1}">${prodOptions(x.p)}</select><input class="rf-oz" inputmode="decimal" value="${x.oz??''}" aria-label="Ounces for bottle ${i+1}"><span class="note">oz</span>${houseSpirit(x.p)?`<span class="pill" title="Swapped when a guest picks a ${esc(houseSpirit(x.p).toLowerCase())} upgrade">house ${esc(houseSpirit(x.p).toLowerCase())}</span>`:''}<button type="button" class="mini" data-rfdel="${i}" aria-label="Remove bottle ${i+1}">✕</button></div>`).join('')}
-      <button type="button" class="mini" data-rfadd="1">+ Add bottle</button>
+      <div class="rfh">Products in this drink</div>
+      ${(d.pours||[]).map((x,i)=>`<div class="rfrow" data-rfrow="${i}"><select class="rf-p" aria-label="Product ${i+1}">${prodOptions(x.p)}</select><input class="rf-oz" inputmode="decimal" value="${x.oz??''}" aria-label="Ounces for product ${i+1}"><span class="note">oz</span>${houseSpirit(x.p)?`<span class="pill" title="Swapped when a guest picks a ${esc(houseSpirit(x.p).toLowerCase())} upgrade">house ${esc(houseSpirit(x.p).toLowerCase())}</span>`:''}<button type="button" class="mini" data-rfdel="${i}" aria-label="Remove product ${i+1}">✕</button></div>`).join('')}
+      <button type="button" class="mini" data-rfadd="1">+ Add product</button>
       <div class="note">Build the drink with the house spirit. When a guest picks an upgrade in Toast, the house bottle is swapped automatically (see Well Drinks). Juices, syrups and garnish don't need to be listed.</div>
       ${toastBlock(d,'bar',R.edit==='new')}
       <label for="rf-notes">Notes (optional)<textarea id="rf-notes" rows="2">${esc(d.notes||'')}</textarea></label>
@@ -1385,7 +1385,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     return bar+`<section class="card"><h2>How well drinks and upgrades work</h2><div class="note">Every drink is built with the <b>house</b> spirit (house vodka = ${esc(prodName((c.spirits.find(x=>x.spirit==='Vodka')||{}).house)||'—')}). When a guest picks an upgrade in Toast (Vodka Upgrade → Grey Goose), the house bottle in that drink is swapped for the upgrade bottle, same pour.</div></section>
       ${(c.spirits||[]).map(spCard).join('')}
       <section class="card"><h2>Other Toast modifiers</h2><div class="note">Modifiers that change the pour, like Cadillac (+ Grand Marnier) or Tall (+ more of the house spirit).</div>
-      <div class="rmlist">${(c.extras||[]).map((m,k)=>`<div class="rmrow" data-exrow="${k}"><div class="rmtop"><input class="ex-name" value="${esc(m.name||'')}" placeholder="Modifier name in Toast" aria-label="Modifier name"><button type="button" class="mini" data-exdel="${k}" aria-label="Remove ${esc(m.name||'modifier')}">✕</button></div><div class="rmbot"><select class="ex-type" aria-label="What it does">${Object.entries(MODT).map(([kk,l])=>`<option value="${kk}"${(m.type||'add')===kk?' selected':''}>${l}</option>`).join('')}</select><select class="ex-p" aria-label="Bottle">${prodOptions(m.p).replace('Pick a bottle…','House spirit of the drink')}</select><input class="ex-oz" inputmode="decimal" value="${m.oz??''}" placeholder="oz" aria-label="Ounces"></div></div>`).join('')}</div>
+      <div class="rmlist">${(c.extras||[]).map((m,k)=>`<div class="rmrow" data-exrow="${k}"><div class="rmtop"><input class="ex-name" value="${esc(m.name||'')}" placeholder="Modifier name in Toast" aria-label="Modifier name"><button type="button" class="mini" data-exdel="${k}" aria-label="Remove ${esc(m.name||'modifier')}">✕</button></div><div class="rmbot"><select class="ex-type" aria-label="What it does">${Object.entries(MODT).map(([kk,l])=>`<option value="${kk}"${(m.type||'add')===kk?' selected':''}>${l}</option>`).join('')}</select><select class="ex-p" aria-label="Bottle">${prodOptions(m.p).replace('Pick a product…','House spirit of the drink')}</select><input class="ex-oz" inputmode="decimal" value="${m.oz??''}" placeholder="oz" aria-label="Ounces"></div></div>`).join('')}</div>
       <button type="button" class="mini" data-exadd="1">+ Add modifier</button></section>
       ${bar}<div class="bagbtns"><button type="button" class="mini" data-spadd="1">+ Add spirit type</button></div>`; }
   function readMods(){ const c=JSON.parse(JSON.stringify(curCfg()));
