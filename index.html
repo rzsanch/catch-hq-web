@@ -645,6 +645,7 @@ nav.tabs a{font-size:.6rem}
 nav.tabs a[hidden]{display:none!important}
 .areapills button{font-size:1rem;padding:10px 16px;min-height:44px;border-radius:99px}
 .areapills button small{font-size:.8rem}
+.vendpills{margin-top:-4px}.vendpills button{font-size:.95rem;padding:8px 14px;min-height:44px;border-radius:99px}.vendpills button small{font-size:.75rem}
 .invtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .invtools .search{flex:1 1 150px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
 .chk{display:inline-flex;gap:6px;align-items:center;font-size:.82rem;color:var(--muted)}
@@ -1132,6 +1133,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     <section class="card"><h2>Account</h2><div id="acctcard"></div></section>`; }
   const INVS={bar:{key:'bar',pfx:'inv',label:'Bar',st:S.inv,areas:[['wi1','Keg Walk In'],['wi2','Walk In 2'],['office','Office'],['cage','Cage'],['bar','Bar']]},
     food:{key:'food',pfx:'finv',label:'Food',st:S.finv,areas:[['freezer','Freezer'],['wi1','Walk In 2'],['pantry','Pantry'],['spice','Kitchen Spice Rack']]}};
+  ['bar','food'].forEach(k=>{ try{ INVS[k].st.vend=localStorage.getItem('hq.vend.'+k)||''; }catch(x){} });
   let INV=INVS.bar;
   const inum=v=>v==null||v===''?null:+v;
   const ilast=()=>{const I=INV.st; return I.hist.find(h=>!I.cur||h.date<I.cur.date)||I.hist[0]||null;};
@@ -1362,6 +1364,9 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <button type="button" class="btn" data-istart="${today}">Start ${fmtDay(today)} count</button>
       <div class="note">On paper instead? Start the count, open Photos and add a picture of each page. I'll enter it Wednesday morning.</div></section>`;
     const cnt=a=>I.cat.filter(p=>ival(p.id,a)!=null).length;
+    const vends=[...new Set(I.cat.map(p=>p.v).filter(Boolean))].sort(); if(I.vend&&!vends.includes(I.vend)) I.vend='';
+    const vok=p=>!I.vend||p.v===I.vend;
+    const vpills=vends.length>1?`<div class="wkpick scrollx vendpills" role="tablist" aria-label="Vendor"><span class="note" style="align-self:center;margin-right:4px">Vendor</span><button type="button" role="tab" data-ivend="" class="${!I.vend?'on':''}" aria-selected="${!I.vend}">All</button>${vends.map(v=>`<button type="button" role="tab" data-ivend="${esc(v)}" class="${I.vend===v?'on':''}" aria-selected="${I.vend===v}">${esc(v)} <small>${I.cat.filter(p=>p.v===v).length}</small></button>`).join('')}</div>`:'';
     const nphotos=I.photos.filter(x=>x.date===I.cur.date).length;
     const pills=`<div class="wkpick scrollx areapills" role="tablist">${INV.areas.map(([a,l])=>`<button type="button" role="tab" data-iarea="${a}" class="${I.view===a?'on':''}" aria-selected="${I.view===a}">${l}${cnt(a)?` <small>${cnt(a)}</small>`:''}</button>`).join('')}<button type="button" role="tab" data-iarea="totals" class="${I.view==='totals'?'on':''}">Totals</button></div>`;
     const title=`<div><h1 class="invh">${INV.label} · ${fmtDay(I.cur.date)} <span class="bagbtns"><button type="button" class="mini finishbtn" data-ifinish="ask">Finish Count</button>${I.cat.some(p=>INV.areas.some(([a])=>ival(p.id,a)!=null))?`<button type="button" class="mini" data-iexit="1">Exit</button>`:`<button type="button" class="mini cancelbtn" data-icancel="ask">Cancel Count</button>`}</span></h1><div class="sub">Compared with ${L?fmtDay(L.date):'–'} · ${INV.key==='bar'?'full bottles whole, open bottles in tenths (2.4)':'count by the unit shown (case, bag, lb); partials in tenths (0.5)'}</div>${I.confirmFinish?`<div class="cancelwarn finishwarn" role="alert"><b>Finish and lock this count? ${I.cat.filter(p=>INV.areas.some(([a])=>ival(p.id,a)!=null)).length} products counted. Numbers can't be changed after this.</b><span class="bagbtns"><button type="button" class="mini go" data-ifinish="yes">Yes, finish</button><button type="button" class="mini" data-ifinish="no">Not yet</button></span></div>`:''}${I.confirmCancel?`<div class="cancelwarn" role="alert"><b>Canceling will remove any data entered. Are you sure you want to cancel?</b><span class="bagbtns"><button type="button" class="mini danger" data-icancel="yes">Yes, cancel</button><button type="button" class="mini" data-icancel="no">No, keep counting</button></span></div>`:''}</div>`;
@@ -1386,23 +1391,24 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
         + (noPar?`<div class="note">${noPar} counted products don't have a par yet.</div>`:'');
     }
     if(I.view==='totals'){
-      const rows=I.cat.filter(p=>itot(p.id)||iltot(p.id));
+      const rows=I.cat.filter(p=>vok(p)&&(itot(p.id)||iltot(p.id)));
       const counted=I.cat.filter(p=>INV.areas.some(([a])=>ival(p.id,a)!=null)).length;
-      return title+pills+`<section class="card"><h2>${counted} products counted</h2><div class="scroll"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="r">Total</th><th class="r">Last</th><th class="r">Par</th><th class="r">Order</th></tr></thead>
+      return title+pills+vpills+`<section class="card"><h2>${counted} products counted${I.vend?' · showing '+esc(I.vend):''}</h2><div class="scroll"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="r">Total</th><th class="r">Last</th><th class="r">Par</th><th class="r">Order</th></tr></thead>
       <tbody>${rows.map(p=>`<tr><td>${esc(p.n)}</td>${INV.areas.map(([a])=>`<td class="r">${ival(p.id,a)??''}</td>`).join('')}<td class="r"><b>${+itot(p.id).toFixed(2)}</b></td><td class="r">${+iltot(p.id).toFixed(2)||'–'}</td><td class="r">${ipar(p.id)??'–'}</td><td class="r">${iorder(p.id)?`<b style="color:var(--warn)">${iorder(p.id)}</b>`:'–'}</td></tr>`).join('')}</tbody></table></div>
       <div class="note">Wednesday morning I'll work out usage (last count + deliveries − this count) and compare it with Toast sales and invoice costs.</div></section>`
     }
     const a=I.view, label=INV.areas.find(x=>x[0]===a)[1], q=I.q.trim().toLowerCase();
-    const list=I.cat.filter(p=> q? (p.n.toLowerCase().includes(q)||String(p.g).toLowerCase().includes(q)) : (I.all||p.home===a||ilval(p.id,a)!=null||ival(p.id,a)!=null));
-    const usual=I.cat.filter(p=>p.home===a||ilval(p.id,a)!=null).length;
-    let out=title+pills+`<div class="invtools"><input class="search" id="iq" type="search" placeholder="Find a product" value="${esc(I.q)}" autocomplete="off" aria-label="Find a product"><label class="chk" for="iall"><input type="checkbox" id="iall" ${I.all?'checked':''}> Show all</label><span class="note">${label}: ${cnt(a)} counted${usual?' of '+usual+' usual':''}</span></div>`;
+    const list=I.cat.filter(p=> vok(p) && (q? (p.n.toLowerCase().includes(q)||String(p.g).toLowerCase().includes(q)) : (I.all||p.home===a||ilval(p.id,a)!=null||ival(p.id,a)!=null)));
+    const usual=I.cat.filter(p=>vok(p)&&(p.home===a||ilval(p.id,a)!=null)).length;
+    let out=title+pills+vpills+`<div class="invtools"><input class="search" id="iq" type="search" placeholder="Find a product" value="${esc(I.q)}" autocomplete="off" aria-label="Find a product"><label class="chk" for="iall"><input type="checkbox" id="iall" ${I.all?'checked':''}> Show all</label><span class="note">${label}${I.vend?' · '+esc(I.vend):''}: ${I.vend?list.filter(p=>ival(p.id,a)!=null).length:cnt(a)} counted${usual?' of '+usual+' usual':''}</span></div>`;
     const addForm=()=>{ const groups=[...new Set(I.cat.map(x=>x.g).filter(Boolean))].sort(); return `<section class="card" id="newprod"><h2>Add a product not on the list</h2>
       <form class="newform" data-newprod="${a}"><label for="np-name">Product name<input id="np-name" required value="${esc(I.q)}" placeholder="e.g. Casamigos Reposado"></label>
       <label for="np-type">Type<select id="np-type">${groups.map(g=>`<option>${esc(g)}</option>`).join('')}<option selected>New / Other</option></select></label>
       <label for="np-size">Size (optional)<input id="np-size" placeholder="750ml, 1L, 1/2 keg"></label>
+      <label for="np-vend">Vendor<input id="np-vend" list="np-vends" value="${esc(I.vend||'')}" placeholder="e.g. Sysco"><datalist id="np-vends">${[...new Set(I.cat.map(x=>x.v).filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">`).join('')}</datalist></label>
       <div class="bagbtns"><button type="submit" class="btn">Add to list and count in ${label}</button><button type="button" class="btn ghost" data-npcancel="1">Cancel</button></div></form>
       <div class="note">It's added to the product list for everyone, flagged as new so I can add its cost from the next invoice.</div></section>`; };
-    if(!list.length) return out+`<div class="empty">${q?'No product matches “'+esc(I.q)+'”.':'Nothing was here last count. Tick Show all, or add a new product below.'}</div>`+addForm();
+    if(!list.length) return out+`<div class="empty">${q?'No product matches “'+esc(I.q)+'”'+(I.vend?' from '+esc(I.vend)+'.':'.'):I.vend?'No '+esc(I.vend)+' products were here last count. Tick Show all to see every '+esc(I.vend)+' product.':'Nothing was here last count. Tick Show all, or add a new product below.'}</div>`+addForm();
     let g=null;
     for(const p of list){
       if(p.g!==g){ g=p.g; out+=`<div class="grp">${esc(g||'Other')}</div>`; }
@@ -1491,10 +1497,10 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(done && !d.pours.length){ alertBox('Add at least one bottle before marking the recipe complete.'); return; }
     try{ await window.__db.collection('invrecipes').doc(id).set(doc); if(doc.complete) await sendMenuReq('bar',id,doc,t,prev&&prev.name); S.rec.edit=null; S.rec.draft=null; render(); }catch(x){ alertBox("Couldn't save that recipe. Check your connection."); } });
   document.addEventListener('submit',async e=>{ const f=e.target.closest('[data-newprod]'); if(!f) return; e.preventDefault();
-    const name=document.getElementById('np-name').value.trim(); if(!name) return; const g=document.getElementById('np-type').value; const sz=document.getElementById('np-size').value.trim();
+    const name=document.getElementById('np-name').value.trim(); if(!name) return; const g=document.getElementById('np-type').value; const sz=document.getElementById('np-size').value.trim(); const vd=(document.getElementById('np-vend')||{value:''}).value.trim();
     const id=('new-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')).slice(0,60); if(INV.st.cat.some(x=>x.id===id||x.n.toLowerCase()===name.toLowerCase())){ alertBox(name+' is already on the list. Search for it.'); return; }
     const gi=INV.st.cat.filter(x=>x.g===g).map(x=>x.i); const i=gi.length? Math.max(...gi)+0.5 : 9999;
-    try{ await window.__db.collection(INV.pfx+'new').doc(id).set({id,n:name,g:g==='New / Other'?'New products':g,s:sz,i,isNew:true,addedOn:INV.st.cur.date,addedIn:f.dataset.newprod,addedAt:new Date().toISOString()}); INV.st.adding=false; INV.st.q=''; INV.st.all=true; render(); setTimeout(()=>{const el=document.getElementById(`in-${f.dataset.newprod}-${id}`); el&&(el.scrollIntoView({block:'center'}),el.focus());},300); }
+    try{ await window.__db.collection(INV.pfx+'new').doc(id).set({id,n:name,g:g==='New / Other'?'New products':g,s:sz,...(vd?{v:vd}:{}),i,isNew:true,addedOn:INV.st.cur.date,addedIn:f.dataset.newprod,addedAt:new Date().toISOString()}); INV.st.adding=false; INV.st.q=''; INV.st.all=true; render(); setTimeout(()=>{const el=document.getElementById(`in-${f.dataset.newprod}-${id}`); el&&(el.scrollIntoView({block:'center'}),el.focus());},300); }
     catch(err){ alertBox("Couldn't add that product. Try again."); } });
   document.addEventListener('change',async e=>{ const t=e.target;
     if(t.id==='tm-item'){ if(document.querySelector('[data-recform]')){ S.rec.draft=readRecForm(); } else if(document.querySelector('[data-frform]')){ S.frec.draft=readFrForm(); } render(); return; }
@@ -1592,6 +1598,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       const key=I.cur.key||I.cur.date; try{ await window.__db.collection(INV.pfx+'orderreq').doc(`${key}--${v.replace(/[^a-z0-9]+/gi,'-')}`).set({kind:INV.key,vendor:v,key,date:I.cur.date,items,status:'requested',requestedAt:new Date().toISOString()}); }catch(x){ alertBox("Couldn't send the order request."); } return; }
     if(e.target.closest('[data-npcancel]')){ INV.st.adding=false; INV.st.q=''; render(); return; }
     const ap=e.target.closest('[data-addprod]'); if(ap){ INV.st.adding=true; render(); setTimeout(()=>{const n=document.getElementById('np-name'); n&&n.focus(); n&&n.scrollIntoView({block:'center'});},0); return; }
+    const ivd=e.target.closest('[data-ivend]'); if(ivd){ INV.st.vend=ivd.dataset.ivend; try{localStorage.setItem('hq.vend.'+INV.key,INV.st.vend);}catch(x){} render(); document.getElementById('main').scrollTop=0; return; }
     const ia=e.target.closest('[data-iarea]'); if(ia){ INV.st.view=ia.dataset.iarea; render(); document.getElementById('main').scrollTop=0; return; }
     const is=e.target.closest('[data-istep]'); if(is){ const pp=is.dataset.p,aa=is.dataset.a; let nv=+((ival(pp,aa)||0)+ +is.dataset.istep).toFixed(2); if(nv<0) nv=0; isave(pp,aa,nv).then(render); return; }
     const st=e.target.closest('[data-istart]'); if(st){ INV.st.exited=false; INV.st.confirmDelete=false; window.__db.doc(INV.pfx+'meta/current').set({date:st.dataset.istart,key:st.dataset.istart+'-'+Date.now().toString(36),startedAt:new Date().toISOString(),closed:false}).catch(()=>{}); return; }
