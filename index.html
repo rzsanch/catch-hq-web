@@ -963,8 +963,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(!open.length) return `<section class="card owedbox ok"><h2>Tips still owed</h2><div class="note">Nothing owed. Every counted tip bag is settled.</div></section>`;
     return `<section class="card owedbox"><h2>Tips still owed · ${money(tot)}</h2><ul class="guests" style="margin:0">${(()=>{const g={}; open.forEach(b=>{const n=b.server.replace(/ \(.*\)$/,''); (g[n]=g[n]||[]).push(b);}); return Object.entries(g).map(([n,list])=>`<li><div class="gtop"><b>${esc(n)}</b><span class="owedamt"><b style="color:var(--warn)">${money(list.reduce((a,b)=>a+owedOf(b),0))}</b><button type="button" class="mini" data-paid="${esc(list.map(b=>b.id).join(','))}">Mark paid</button></span></div>${list.map(b=>`<div class="owedday note"><span>${fmtDay(b.date)} · left ${money(b.actual)} of ${money(b.expected,0)}</span><span>${money(owedOf(b))}</span></div>`).join('')}</li>`).join('');})()}</ul></section>`;
   }
-  // Julio (manager) only shows in tip-outs when he closed a shift with tips (Rick, Nov 22 2026)
-  function tipRows(d){ return ((d&&d.tipouts)||[]).filter(r=>!/^Julio\b/i.test(r.server||'') || (!/no shift/i.test(r.server) && ((r.noncash||0)>0 || (r.cash||0)>0))); }
+  // Julio (manager) never shows in tip-outs: his tips go to the kitchen through a separate process (Rick, Nov 22 2026)
+  function tipRows(d){ return ((d&&d.tipouts)||[]).filter(r=>!/^Julio\b/i.test(r.server||'')); }
   function tipouts(d){
     const t=tipRows(d); if(!t.length) return '<div class="empty">No tip-outs for this day.</div>';
     const sum=k=>t.reduce((s,r)=>s+(r[k]||0),0);
