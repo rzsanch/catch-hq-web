@@ -1136,7 +1136,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const prodName=id=>{ const p=S.inv.cat.find(x=>x.id===id); return p? p.n : (id||'—'); };
   function prodOptions(sel){ const by={}; S.inv.cat.forEach(p=>{ (by[p.g||'Other']=by[p.g||'Other']||[]).push(p); });
     return `<option value="">Pick a bottle…</option>`+Object.keys(by).sort().map(g=>`<optgroup label="${esc(g)}">${by[g].map(p=>`<option value="${esc(p.id)}"${p.id===sel?' selected':''}>${esc(p.n)}${p.s?' ('+esc(p.s)+')':''}</option>`).join('')}</optgroup>`).join(''); }
-  const pourText=r=>(r.pours||[]).filter(x=>x.p).map(x=>`${esc(prodName(x.p))} ${+x.oz||0} oz${x.base?' ★':''}`).join(' · ');
+  const pourText=r=>(r.pours||[]).filter(x=>x.p).map(x=>`${esc(prodName(x.p))} ${+x.oz||0} oz${houseSpirit(x.p)?' (house)':''}`).join(' · ');
   // ---- Toast menu link: prices, new items and price changes ----
   const tnorm=x=>String(x||'').toLowerCase().replace(/&amp;/g,'&').replace(/[^a-z0-9]+/g,'');
   const TMENUS={bar:['BAR','Happy Hour'],food:['FOOD','Happy Hour','Lunch Combos','Fish Market','Fish Market Prepped','Taco Tuesdays']};
@@ -1220,7 +1220,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   function recipesView(){
     const R=S.rec, all=Object.values(S.recipes).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
     const head=`<div><h1>Drink Recipes</h1><div class="sub">How much of each bottle goes into every drink rung in Toast. I use these to compare bottles used with drinks sold.</div></div>
-      <div class="seg" role="tablist" style="margin:10px 0"><button type="button" role="tab" class="${R.tab==='drinks'?'on':''}" aria-selected="${R.tab==='drinks'}" data-rectab="drinks">Drinks (${all.length})</button><button type="button" role="tab" class="${R.tab==='mods'?'on':''}" aria-selected="${R.tab==='mods'}" data-rectab="mods">Liquor choices (${S.recMods.length})</button></div>`;
+      <div class="seg" role="tablist" style="margin:10px 0"><button type="button" role="tab" class="${R.tab==='drinks'?'on':''}" aria-selected="${R.tab==='drinks'}" data-rectab="drinks">Specialty Drinks (${all.length})</button><button type="button" role="tab" class="${R.tab==='mods'?'on':''}" aria-selected="${R.tab==='mods'}" data-rectab="mods">Cocktails</button></div>`;
     if(!S.inv.cat.length) return head+'<div class="empty">Loading the bar product list…</div>';
     if(R.tab==='mods') return head+recModsView();
     if(R.edit) return head+recForm();
@@ -1229,7 +1229,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const row=r=>`<li><button type="button" class="recrow" data-recedit="${esc(r.id)}"><b>${esc(r.name)}</b>${(()=>{const v=tprice(r,'bar'); return v!=null?` <span class="note">${fmtp(v)}</span>`:(toastFor(r,'bar')?'':' <span class="note">not on Toast menu</span>');})()}${(r.aka||[]).length?` <span class="note">also ${esc(r.aka.join(', '))}</span>`:''}<div class="note">${pourText(r)||'No bottles yet'}${r.check?` · <span style="color:var(--warn)">${esc(r.check)}</span>`:''}</div></button></li>`;
     return head+menuReqCard()+`<div class="invtools"><input class="search" id="recq" type="search" placeholder="Find a drink or bottle" value="${esc(R.q)}" autocomplete="off" aria-label="Find a drink or bottle"><button type="button" class="btn" data-recedit="new">+ Add drink</button></div>
       ${need.length?`<section class="card"><h2>Needs a recipe (${need.length})</h2><div class="note">Drinks stay here until someone taps <b>Recipe Complete</b>.</div><ul class="reclist">${need.map(row).join('')}</ul></section>`:''}
-      <section class="card"><h2>Recipes (${done.length})</h2><ul class="reclist">${done.map(row).join('')||'<li class="note">None yet.</li>'}</ul><div class="note">★ = the bottle a liquor choice in Toast replaces (e.g. Titos instead of house vodka).</div></section>`;
+      <section class="card"><h2>Recipes (${done.length})</h2><ul class="reclist">${done.map(row).join('')||'<li class="note">None yet.</li>'}</ul><div class="note">(house) = the house spirit; a guest's upgrade in Toast swaps it (see Cocktails).</div></section>`;
   }
   function recForm(){ const R=S.rec, d=R.draft||{name:'',aka:[],pours:[{p:'',oz:1.5,base:true}],notes:''};
     return `<section class="card"><h2>${R.edit==='new'?'Add a drink':'Edit '+esc(d.name)}</h2>
@@ -1237,9 +1237,9 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <label for="rf-name">Name in Toast<input id="rf-name" required value="${esc(d.name)}" placeholder="e.g. Margaritas"></label>
       <label for="rf-aka">Also rung as (optional, separate with commas)<input id="rf-aka" value="${esc((d.aka||[]).join(', '))}" placeholder="e.g. HH Fishermen's Margarita"></label>
       <div class="rfh">Bottles in this drink</div>
-      ${(d.pours||[]).map((x,i)=>`<div class="rfrow" data-rfrow="${i}"><select class="rf-p" aria-label="Bottle ${i+1}">${prodOptions(x.p)}</select><input class="rf-oz" inputmode="decimal" value="${x.oz??''}" aria-label="Ounces for bottle ${i+1}"><span class="note">oz</span><label class="chk" title="A liquor choice in Toast replaces this bottle"><input type="radio" name="rf-base" class="rf-base" ${x.base?'checked':''}> ★</label><button type="button" class="mini" data-rfdel="${i}" aria-label="Remove bottle ${i+1}">✕</button></div>`).join('')}
+      ${(d.pours||[]).map((x,i)=>`<div class="rfrow" data-rfrow="${i}"><select class="rf-p" aria-label="Bottle ${i+1}">${prodOptions(x.p)}</select><input class="rf-oz" inputmode="decimal" value="${x.oz??''}" aria-label="Ounces for bottle ${i+1}"><span class="note">oz</span>${houseSpirit(x.p)?`<span class="pill" title="Swapped when a guest picks a ${esc(houseSpirit(x.p).toLowerCase())} upgrade">house ${esc(houseSpirit(x.p).toLowerCase())}</span>`:''}<button type="button" class="mini" data-rfdel="${i}" aria-label="Remove bottle ${i+1}">✕</button></div>`).join('')}
       <button type="button" class="mini" data-rfadd="1">+ Add bottle</button>
-      <div class="note">★ marks the bottle that a liquor choice (Titos, Patron, Grey Goose…) replaces. Juices, syrups and garnish don't need to be listed.</div>
+      <div class="note">Build the drink with the house spirit. When a guest picks an upgrade in Toast, the house bottle is swapped automatically (see Cocktails). Juices, syrups and garnish don't need to be listed.</div>
       ${toastBlock(d,'bar',R.edit==='new')}
       <label for="rf-notes">Notes (optional)<textarea id="rf-notes" rows="2">${esc(d.notes||'')}</textarea></label>
       ${!d.complete?`<div class="note">Save keeps this drink in "Needs a recipe". Tap <b>Recipe Complete</b> when the bottles and pours are final; that moves it to Recipes and sends any Toast changes (new item, name or price) for Rick or Dave to publish.</div>`:''}
@@ -1248,17 +1248,41 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     </form></section>`; }
   function readRecForm(){ const f=document.querySelector('[data-recform]'); if(!f) return S.rec.draft; const rows=[...f.querySelectorAll('[data-rfrow]')];
     return {...(S.rec.draft||{}), name:f.querySelector('#rf-name').value.trim(), aka:f.querySelector('#rf-aka').value.split(',').map(x=>x.trim()).filter(Boolean),
-      ...readToast(f), pours:rows.map(r=>({p:r.querySelector('.rf-p').value, oz:+String(r.querySelector('.rf-oz').value).replace(',','.')||0, base:r.querySelector('.rf-base').checked})), notes:f.querySelector('#rf-notes').value.trim()}; }
-  const MODT={swap:'Swaps ★ to',add:'Adds',none:'No effect'};
-  function recModsView(){ const R=S.rec; const list=R.mods||S.recMods; const q=R.q.trim().toLowerCase();
-    return `<section class="card"><h2>Liquor choices and other Toast modifiers</h2><div class="note">When a bartender picks a choice in Toast (Vodka Upgrade → Titos, Cadillac, Tall…), this says what it does to the bottles. Anything not listed has no effect.</div>
-    <div class="invtools"><input class="search" id="recq" type="search" placeholder="Find a choice" value="${esc(R.q)}" autocomplete="off" aria-label="Find a choice"></div>
-    <div class="rmlist">${list.map((m,i)=>({m,i})).filter(({m})=>!q||String(m.name).toLowerCase().includes(q)||prodName(m.p).toLowerCase().includes(q)).map(({m,i})=>`<div class="rmrow" data-rmrow="${i}"><div class="rmtop"><input class="rm-name" value="${esc(m.name||'')}" placeholder="Choice name in Toast" aria-label="Choice name in Toast"><button type="button" class="mini" data-rmdel="${i}" aria-label="Remove ${esc(m.name||'choice')}">✕</button></div><div class="rmbot"><select class="rm-type" aria-label="What it does">${Object.entries(MODT).map(([k,l])=>`<option value="${k}"${(m.type||'swap')===k?' selected':''}>${l}</option>`).join('')}</select><select class="rm-p" aria-label="Bottle">${prodOptions(m.p)}</select><input class="rm-oz" inputmode="decimal" value="${m.oz??''}" placeholder="oz" aria-label="Ounces (for Add a pour)"></div></div>`).join('')}</div>
-    <div class="bagbtns"><button type="button" class="mini" data-rmadd="1">+ Add choice</button><button type="button" class="btn" data-rmsave="1">${R.mods?'Save changes':'Saved'}</button>${R.mods?`<button type="button" class="btn ghost" data-rmcancel="1">Undo changes</button>`:''}</div>
-    <div class="note"><b>Swaps ★ to</b>: the drink uses this bottle instead of its ★ bottle (Titos instead of house vodka). <b>Adds</b>: an extra pour; with no bottle picked it's more of the ★ bottle (Tall = +1.5 oz).</div></section>`; }
-  function readMods(){ const rows=[...document.querySelectorAll('[data-rmrow]')]; const list=(S.rec.mods||S.recMods).map(x=>({...x}));
-    rows.forEach(r=>{ const i=+r.dataset.rmrow; const oz=r.querySelector('.rm-oz').value.trim(); list[i]={...list[i], name:r.querySelector('.rm-name').value.trim(), type:r.querySelector('.rm-type').value, p:r.querySelector('.rm-p').value, oz:oz===''?null:+oz.replace(',','.')}; });
-    return list; }
+      ...readToast(f), pours:rows.map(r=>({p:r.querySelector('.rf-p').value, oz:+String(r.querySelector('.rf-oz').value).replace(',','.')||0, base:!!houseSpirit(r.querySelector('.rf-p').value)})), notes:f.querySelector('#rf-notes').value.trim()}; }
+  // ---- Cocktails: house spirit per type; a Toast upgrade swaps the house bottle for the premium one ----
+  const SPIRIT_OF={'Vodka':'Vodka','Tequila':'Tequila','Mezcal':'Tequila','Gin':'Gin','Rum':'Rum','Black Rum':'Rum','Whiskey':'Whiskey','Canadian Whiskey':'Whiskey','Irish Whiskey':'Whiskey','Cinnemon Whiskey':'Whiskey','Cognac':'Cognac & Brandy','Brandy':'Cognac & Brandy'};
+  const SP_ORDER=['Vodka','Tequila','Gin','Rum','Whiskey','Scotch','Cognac & Brandy'];
+  function cfgFromMods(mods){ const sp={}; const extras=[]; const get=n=>sp[n]=sp[n]||{spirit:n,house:'',houseNames:[],upgrades:[]};
+    (mods||[]).forEach(m=>{ if((m.type||'swap')!=='swap'){ extras.push({...m}); return; }
+      const prod=S.inv.cat.find(x=>x.id===m.p); let spn=prod? (SPIRIT_OF[prod.g]||prod.g) : null;
+      if(/glenfiddich|scotch/i.test(m.name)) spn='Scotch';
+      if(!spn){ const w=(m.name.match(/vodka|tequila|gin|rum|whiskey|whistlepig|jim beam/i)||[''])[0].toLowerCase(); spn={vodka:'Vodka',tequila:'Tequila',gin:'Gin',rum:'Rum',whiskey:'Whiskey',whistlepig:'Whiskey','jim beam':'Whiskey'}[w]||'Other'; }
+      const o=get(spn); const isHouse=/^house\b/i.test(m.name)||/^(vodka|gin|tequila|sub tequila|house)$/i.test(m.name.trim());
+      if(isHouse){ if(!o.house&&m.p) o.house=m.p; o.houseNames.push(m.name); } else o.upgrades.push({name:m.name,p:m.p||''}); });
+    const spirits=Object.values(sp).sort((x,y)=>(SP_ORDER.indexOf(x.spirit)+1||99)-(SP_ORDER.indexOf(y.spirit)+1||99));
+    return {spirits,extras}; }
+  function curCfg(){ return S.rec.mods || (S.recCfg&&S.recCfg.spirits? S.recCfg : cfgFromMods(S.recMods)); }
+  const houseSpirit=pid=>{ const c=curCfg(); const h=(c.spirits||[]).find(x=>x.house&&x.house===pid); return h? h.spirit : null; };
+  function cfgToMods(c){ const out=[]; (c.spirits||[]).forEach(x=>{ (x.houseNames||[]).forEach(n=>out.push({name:n,type:'swap',p:x.house,spirit:x.spirit,house:true})); (x.upgrades||[]).forEach(u=>out.push({name:u.name,type:'swap',p:u.p,spirit:x.spirit})); }); (c.extras||[]).forEach(m=>out.push({...m})); return out.filter(m=>m.name); }
+  const MODT={add:'Adds',swap:'Swaps main spirit to',none:'No effect'};
+  function recModsView(){ const R=S.rec; const c=curCfg(); const dirty=!!R.mods;
+    const spCard=(x,i)=>`<section class="card spcard" data-sp="${i}"><h2>${esc(x.spirit)}</h2>
+      <label for="sp-house-${i}">House ${esc(x.spirit.toLowerCase())} (what every drink is built with)<select id="sp-house-${i}" class="sp-house">${prodOptions(x.house)}</select></label>
+      <label for="sp-hn-${i}">Toast names for the house pick (commas)<input id="sp-hn-${i}" class="sp-hn" value="${esc((x.houseNames||[]).join(', '))}" placeholder="House ${esc(x.spirit)}"></label>
+      <div class="rfh">Upgrades: Toast choice → bottle that replaces the house ${esc(x.spirit.toLowerCase())}</div>
+      <div class="rmlist">${(x.upgrades||[]).map((u,j)=>`<div class="rmrow" data-uprow="${i}-${j}"><div class="rmtop"><input class="up-name" value="${esc(u.name||'')}" placeholder="Choice name in Toast" aria-label="Upgrade name in Toast"><button type="button" class="mini" data-updel="${i}-${j}" aria-label="Remove ${esc(u.name||'upgrade')}">✕</button></div><select class="up-p" aria-label="Bottle for ${esc(u.name||'upgrade')}">${prodOptions(u.p)}</select>${u.p?'':'<div class="note" style="color:var(--warn)">Pick the bottle (add it to the bar list if it\'s missing)</div>'}</div>`).join('')||'<div class="note">No upgrades yet.</div>'}</div>
+      <button type="button" class="mini" data-upadd="${i}">+ Add ${esc(x.spirit.toLowerCase())} upgrade</button></section>`;
+    return `<section class="card"><h2>How cocktails work</h2><div class="note">Every drink is built with the <b>house</b> spirit (house vodka = ${esc(prodName((c.spirits.find(x=>x.spirit==='Vodka')||{}).house)||'—')}). When a guest picks an upgrade in Toast (Vodka Upgrade → Grey Goose), the house bottle in that drink is swapped for the upgrade bottle, same pour.</div></section>
+      ${(c.spirits||[]).map(spCard).join('')}
+      <section class="card"><h2>Other Toast modifiers</h2><div class="note">Modifiers that change the pour, like Cadillac (+ Grand Marnier) or Tall (+ more of the house spirit).</div>
+      <div class="rmlist">${(c.extras||[]).map((m,k)=>`<div class="rmrow" data-exrow="${k}"><div class="rmtop"><input class="ex-name" value="${esc(m.name||'')}" placeholder="Modifier name in Toast" aria-label="Modifier name"><button type="button" class="mini" data-exdel="${k}" aria-label="Remove ${esc(m.name||'modifier')}">✕</button></div><div class="rmbot"><select class="ex-type" aria-label="What it does">${Object.entries(MODT).map(([kk,l])=>`<option value="${kk}"${(m.type||'add')===kk?' selected':''}>${l}</option>`).join('')}</select><select class="ex-p" aria-label="Bottle">${prodOptions(m.p).replace('Pick a bottle…','House spirit of the drink')}</select><input class="ex-oz" inputmode="decimal" value="${m.oz??''}" placeholder="oz" aria-label="Ounces"></div></div>`).join('')}</div>
+      <button type="button" class="mini" data-exadd="1">+ Add modifier</button></section>
+      <div class="bagbtns" style="position:sticky;bottom:0;background:var(--bg);padding:8px 0"><button type="button" class="btn" data-rmsave="1"${dirty?'':' disabled'}>${dirty?'Save changes':'Saved'}</button>${dirty?`<button type="button" class="btn ghost" data-rmcancel="1">Undo changes</button>`:''}<button type="button" class="mini" data-spadd="1">+ Add spirit type</button></div>`; }
+  function readMods(){ const c=JSON.parse(JSON.stringify(curCfg()));
+    document.querySelectorAll('[data-sp]').forEach(card=>{ const i=+card.dataset.sp; const x=c.spirits[i]; if(!x) return; x.house=card.querySelector('.sp-house').value; x.houseNames=card.querySelector('.sp-hn').value.split(',').map(t=>t.trim()).filter(Boolean);
+      card.querySelectorAll('[data-uprow]').forEach(r=>{ const j=+r.dataset.uprow.split('-')[1]; x.upgrades[j]={name:r.querySelector('.up-name').value.trim(),p:r.querySelector('.up-p').value}; }); });
+    document.querySelectorAll('[data-exrow]').forEach(r=>{ const k=+r.dataset.exrow; const oz=r.querySelector('.ex-oz').value.trim(); c.extras[k]={name:r.querySelector('.ex-name').value.trim(),type:r.querySelector('.ex-type').value,p:r.querySelector('.ex-p').value,oz:oz===''?null:+oz.replace(',','.')}; });
+    return c; }
 
   function inventoryInner(){
     const I=INV.st, L=ilast(), today=new Date().toLocaleDateString('en-CA');
@@ -1396,7 +1420,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const me=window.__hqMe||{}; const t=readToast(f); const doc={...d, updatedBy:me.name||me.email||'', updatedAt:new Date().toISOString()}; delete doc.id; ['priceTo','newPrice','newGroup','newDesc'].forEach(k=>delete doc[k]);
     try{ await window.__db.collection('finvrecipes').doc(id).set(doc); if(d.kind!=='batch') await sendMenuReq('food',id,doc,t,S.frec.edit==='new'?null:(S.frecipes[id]||{}).name); S.frec.edit=null; S.frec.draft=null; render(); }catch(x){ alertBox("Couldn't save that. Check your connection."); } });
   document.addEventListener('submit',async e=>{ const f=e.target.closest('[data-recform]'); if(!f) return; e.preventDefault();
-    const d=readRecForm(); if(!d.name){ return; } d.pours=(d.pours||[]).filter(x=>x.p&&x.oz>0); if(d.pours.length&&!d.pours.some(x=>x.base)) d.pours[0].base=true;
+    const d=readRecForm(); if(!d.name){ return; } d.pours=(d.pours||[]).filter(x=>x.p&&x.oz>0); d.pours.forEach(x=>x.base=!!houseSpirit(x.p));
     const id=S.rec.edit==='new'? recId(d.name) : S.rec.edit; if(S.rec.edit==='new'&&S.recipes[id]){ alertBox('There is already a recipe called '+d.name+'.'); return; }
     const me=window.__hqMe||{}; const doc={name:d.name,aka:d.aka||[],pours:d.pours,notes:d.notes||'',updatedBy:me.name||me.email||'',updatedAt:new Date().toISOString()};
     const t=readToast(f); if(t.toastId) doc.toastId=t.toastId; const prev=S.rec.edit==='new'?null:S.recipes[id]; const done=!!(e.submitter&&e.submitter.dataset.complete);
@@ -1411,7 +1435,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     catch(err){ alertBox("Couldn't add that product. Try again."); } });
   document.addEventListener('change',async e=>{ const t=e.target;
     if(t.id==='tm-item'){ if(document.querySelector('[data-recform]')){ S.rec.draft=readRecForm(); } else if(document.querySelector('[data-frform]')){ S.frec.draft=readFrForm(); } render(); return; }
-    if(t.closest('[data-rmrow]')){ const was=!!S.rec.mods; S.rec.mods=readMods(); if(!was) render(); return; }
+    if(t.closest('[data-sp],[data-exrow]')){ const was=!!S.rec.mods; S.rec.mods=readMods(); if(!was) render(); return; }
     if(t.matches('.ipar')){ const raw=t.value.trim().replace(',','.'); const v=raw===''?null:+raw; if(raw!==''&&(isNaN(v)||v<0)) return; INV.st.pars=INV.st.pars||{}; INV.st.pars[t.dataset.p]={par:v}; try{ await window.__db.collection(INV.pfx+'par').doc(t.dataset.p).set({par:v,updatedAt:new Date().toISOString()}); }catch(x){ alertBox("Couldn't save the par."); } render(); return; }
     if(t.matches('.iord')){ const raw=t.value.trim(); const v=raw===''?null:Math.max(0,Math.round(+raw)); const e=INV.st.entries[t.dataset.p]||{pid:t.dataset.p}; e.order=v; INV.st.entries[t.dataset.p]=e; const key=INV.st.cur.key||INV.st.cur.date; try{ await window.__db.collection(INV.pfx+'entries').doc(`${key}--${t.dataset.p}`).set({date:INV.st.cur.date,key,pid:t.dataset.p,...Object.fromEntries(INV.areas.map(([k])=>[k,e[k]??null])),order:v,updatedAt:new Date().toISOString()}); }catch(x){} render(); return; }
     if(t.matches('.ictl input')){ const raw=t.value.trim().replace(',','.'); if(raw===''){ await isave(t.dataset.p,t.dataset.a,null); render(); return; } if(isNaN(+raw)||+raw<0) return; await isave(t.dataset.p,t.dataset.a,+(+raw).toFixed(2)); render(); return; }
@@ -1419,7 +1443,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(t.id==='iph'&&t.files&&t.files[0]){ const m=document.getElementById('iphmsg'); m.textContent='Uploading…'; try{ const as=await claude.use('assets'); const r=await as.upload(t.files[0]); await window.__db.collection(INV.pfx+'photos').doc(r.id).set({date:INV.st.cur.date,assetId:r.id,url:r.url,at:new Date().toISOString()}); }catch(err){ m.textContent="Couldn't upload that photo. Try again or use a smaller picture."; } }
   });
   document.addEventListener('input',e=>{ if(e.target.id==='frq'){ S.frec.q=e.target.value; const pos=e.target.selectionStart; render(); const q=document.getElementById('frq'); if(q){ q.focus(); try{q.setSelectionRange(pos,pos);}catch(x){} } return; }
-    if(e.target.id==='recq'){ if(S.rec.tab==='mods'&&S.rec.mods) S.rec.mods=readMods(); S.rec.q=e.target.value; const pos=e.target.selectionStart; render(); const q=document.getElementById('recq'); if(q){ q.focus(); try{q.setSelectionRange(pos,pos);}catch(x){} } return; }
+    if(e.target.id==='recq'){ S.rec.q=e.target.value; const pos=e.target.selectionStart; render(); const q=document.getElementById('recq'); if(q){ q.focus(); try{q.setSelectionRange(pos,pos);}catch(x){} } return; }
     if(e.target.id==='iq'){ INV.st.q=e.target.value; const pos=e.target.selectionStart; render(); const q=document.getElementById('iq'); if(q){ q.focus(); try{q.setSelectionRange(pos,pos);}catch(x){} } } });
   document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.matches('.ictl input,.ipar,.iord')) e.target.blur(); });
   document.addEventListener('submit',e=>{const f=e.target.closest('[data-dcform]'); if(!f) return; e.preventDefault(); const v=f.querySelector('input').value.replace(/[$,\s]/g,''); if(v===''||isNaN(+v)) return; saveDc(f.dataset.dcform, f.dataset.drawer, f.dataset.kind, +f.dataset.exp, +v);});
@@ -1463,17 +1487,20 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const frx=e.target.closest('[data-frdel]'); if(frx){ const v=frx.dataset.frdel; if(v!=='yes'){ S.frec.draft=readFrForm(); S.frec.confirmDel=v==='ask'; render(); return; }
       try{ await window.__db.collection('finvrecipes').doc(S.frec.edit).delete(); S.frec.edit=null; S.frec.draft=null; S.frec.confirmDel=false; render(); }catch(x){ alertBox("Couldn't delete that recipe."); } return; }
     if(e.target.closest('[data-rec="close"]')){ S.rec.on=false; S.rec.edit=null; render(); return; }
-    const rt=e.target.closest('[data-rectab]'); if(rt){ if(S.rec.tab==='mods'&&S.rec.mods){ S.rec.mods=readMods(); } S.rec.tab=rt.dataset.rectab; S.rec.q=''; S.rec.edit=null; render(); return; }
+    const rt=e.target.closest('[data-rectab]'); if(rt){ if(S.rec.tab==='mods'&&document.querySelector('[data-sp]')&&S.rec.mods){ S.rec.mods=readMods(); } S.rec.tab=rt.dataset.rectab; S.rec.q=''; S.rec.edit=null; render(); return; }
     const re=e.target.closest('[data-recedit]'); if(re){ const id=re.dataset.recedit; S.rec.confirmDel=false; if(!id){ S.rec.edit=null; S.rec.draft=null; } else if(id==='new'){ S.rec.edit='new'; S.rec.draft={name:S.rec.q,aka:[],pours:[{p:'',oz:1.5,base:true}],notes:''}; } else { S.rec.edit=id; S.rec.draft=JSON.parse(JSON.stringify(S.recipes[id]||{})); if(!(S.rec.draft.pours||[]).length) S.rec.draft.pours=[{p:'',oz:1.5,base:true}]; } render(); document.getElementById('main').scrollTop=0; return; }
     if(e.target.closest('[data-rfadd]')){ S.rec.draft=readRecForm(); S.rec.draft.pours.push({p:'',oz:0.5,base:false}); render(); return; }
     const rd=e.target.closest('[data-rfdel]'); if(rd){ S.rec.draft=readRecForm(); S.rec.draft.pours.splice(+rd.dataset.rfdel,1); render(); return; }
     const rx=e.target.closest('[data-recdel]'); if(rx){ const v=rx.dataset.recdel; if(v==='ask'){ S.rec.draft=readRecForm(); S.rec.confirmDel=true; render(); return; } if(v==='no'){ S.rec.draft=readRecForm(); S.rec.confirmDel=false; render(); return; }
       try{ await window.__db.collection('invrecipes').doc(S.rec.edit).delete(); S.rec.edit=null; S.rec.draft=null; S.rec.confirmDel=false; render(); }catch(x){ alertBox("Couldn't delete that recipe."); } return; }
-    if(e.target.closest('[data-rmadd]')){ S.rec.mods=readMods(); S.rec.mods.push({name:'',type:'swap',p:'',oz:null}); S.rec.q=''; render(); setTimeout(()=>{ const r=document.querySelectorAll('.rm-name'); const l=r[r.length-1]; l&&(l.scrollIntoView({block:'center'}),l.focus()); },30); return; }
-    const rmd=e.target.closest('[data-rmdel]'); if(rmd){ S.rec.mods=readMods(); S.rec.mods.splice(+rmd.dataset.rmdel,1); render(); return; }
+    const upa=e.target.closest('[data-upadd]'); if(upa){ const i=+upa.dataset.upadd; S.rec.mods=readMods(); S.rec.mods.spirits[i].upgrades.push({name:'',p:''}); render(); setTimeout(()=>{ const r=document.querySelectorAll(`[data-sp="${i}"] .up-name`); const l=r[r.length-1]; l&&(l.scrollIntoView({block:'center'}),l.focus()); },30); return; }
+    const upd=e.target.closest('[data-updel]'); if(upd){ const [i,j]=upd.dataset.updel.split('-').map(Number); S.rec.mods=readMods(); S.rec.mods.spirits[i].upgrades.splice(j,1); render(); return; }
+    if(e.target.closest('[data-exadd]')){ S.rec.mods=readMods(); S.rec.mods.extras.push({name:'',type:'add',p:'',oz:null}); render(); setTimeout(()=>{ const r=document.querySelectorAll('.ex-name'); const l=r[r.length-1]; l&&(l.scrollIntoView({block:'center'}),l.focus()); },30); return; }
+    const exd=e.target.closest('[data-exdel]'); if(exd){ S.rec.mods=readMods(); S.rec.mods.extras.splice(+exd.dataset.exdel,1); render(); return; }
+    if(e.target.closest('[data-spadd]')){ const n=(prompt('Name of the spirit type (e.g. Cognac & Brandy)')||'').trim(); if(!n) return; S.rec.mods=readMods(); S.rec.mods.spirits.push({spirit:n,house:'',houseNames:['House '+n],upgrades:[]}); render(); return; }
     if(e.target.closest('[data-rmcancel]')){ S.rec.mods=null; render(); return; }
-    if(e.target.closest('[data-rmsave]')){ if(!S.rec.mods){ return; } const list=readMods().filter(m=>m.name); const me=window.__hqMe||{};
-      try{ await window.__db.doc('invrecmods/map').set({mods:list,updatedBy:me.name||me.email||'',updatedAt:new Date().toISOString()}); S.rec.mods=null; render(); }catch(x){ alertBox("Couldn't save the choices. Check your connection."); } return; }
+    if(e.target.closest('[data-rmsave]')){ if(!S.rec.mods){ return; } const c=readMods(); c.spirits.forEach(x=>x.upgrades=x.upgrades.filter(u=>u.name)); c.extras=c.extras.filter(m=>m.name); const me=window.__hqMe||{};
+      try{ await window.__db.doc('invrecmods/map').set({spirits:c.spirits,extras:c.extras,mods:cfgToMods(c),updatedBy:me.name||me.email||'',updatedAt:new Date().toISOString()}); S.rec.mods=null; render(); }catch(x){ alertBox("Couldn't save the choices. Check your connection."); } return; }
     const ot=e.target.closest('[data-otext]'); if(ot){ S.orderTxt = S.orderTxt===ot.dataset.otext? null : ot.dataset.otext; render(); return; }
     const oc=e.target.closest('[data-ocopy]'); if(oc){ const ta=document.getElementById(oc.dataset.ocopy); const msg=oc.parentElement.querySelector('[role=status]'); try{ await navigator.clipboard.writeText(ta.value); if(msg) msg.textContent='Copied. Paste it into a text or email.'; }catch(x){ ta.focus(); ta.select(); if(msg) msg.textContent='Text selected. Tap Copy in the menu that appears.'; } return; }
     const op=e.target.closest('[data-oplace]'); if(op){ const v=op.dataset.oplace; const I=INV.st; const items=I.cat.filter(p=>iorder(p.id)>0&&(p.v||'Vendor not set')===v).map(p=>({pid:p.id,name:p.n,size:p.s||'',qty:iorder(p.id),price:p.price??null}));
@@ -1557,7 +1584,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   db.collection(C.pfx+'new').onSnapshot(s=>{ C.st.newp=s.docs.map(d=>({id:d.id,...d.data()})); C.st.cat=[...(C.st.base||[]),...C.st.newp].sort((a,b)=>a.i-b.i); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
   if(C.key==='bar'){ db.doc('invmenu/toast').onSnapshot(s=>{ S.tmenu=s.exists?(s.data().items||[]):[]; if(S.panel==='inventory'&&S.rec.on&&!S.rec.edit&&!S.frec.edit) render(); },()=>{}); db.collection('invmenureq').onSnapshot(s=>{ S.menureqs=s.docs.map(d=>({id:d.id,...d.data()})); if(S.panel==='inventory'&&S.rec.on&&!S.rec.edit&&!S.frec.edit) render(); },()=>{}); }
   if(C.key==='food'){ db.collection('finvrecipes').onSnapshot(s=>{ S.frecipes={}; s.docs.forEach(d=>S.frecipes[d.id]={id:d.id,...d.data()}); if(S.panel==='inventory'&&S.rec.on&&S.rec.kind==='food'&&!S.frec.edit) render(); },()=>{}); }
-  if(C.key==='bar'){ db.collection('invrecipes').onSnapshot(s=>{ S.recipes={}; s.docs.forEach(d=>S.recipes[d.id]={id:d.id,...d.data()}); if(S.panel==='inventory'&&S.rec.on&&!S.rec.edit) render(); },()=>{}); db.doc('invrecmods/map').onSnapshot(s=>{ S.recMods=s.exists?(s.data().mods||[]):[]; if(S.panel==='inventory'&&S.rec.on&&S.rec.tab==='mods'&&!S.rec.mods) render(); },()=>{}); }
+  if(C.key==='bar'){ db.collection('invrecipes').onSnapshot(s=>{ S.recipes={}; s.docs.forEach(d=>S.recipes[d.id]={id:d.id,...d.data()}); if(S.panel==='inventory'&&S.rec.on&&!S.rec.edit) render(); },()=>{}); db.doc('invrecmods/map').onSnapshot(s=>{ const dd=s.exists?s.data():{}; S.recMods=dd.mods||[]; S.recCfg=dd.spirits?{spirits:dd.spirits,extras:dd.extras||[]}:null; if(S.panel==='inventory'&&S.rec.on&&S.rec.tab==='mods'&&!S.rec.mods) render(); },()=>{}); }
   db.collection(C.pfx+'parts').onSnapshot(s=>{ C.st.base=s.docs.flatMap(d=>d.data().products||[]); C.st.cat=[...C.st.base,...(C.st.newp||[])].sort((a,b)=>a.i-b.i); C.st.catErr=null; if((S.panel==='inventory'&&S.invKind===C.key)) render(); },err=>{ C.st.catErr=String(err&&err.message||err); if((S.panel==='inventory'&&S.invKind===C.key)) render(); });
   db.collection(C.pfx+'history').onSnapshot(s=>{ C.st.hist=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.date.localeCompare(a.date)); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
   db.collection(C.pfx+'photos').onSnapshot(s=>{ C.st.photos=s.docs.map(d=>d.data()); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
