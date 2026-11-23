@@ -675,6 +675,8 @@ nav.tabs a[hidden]{display:none!important}
 .grp{font-family:var(--display);font-size:1.05rem;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
 .irow{display:grid;grid-template-columns:minmax(0,1fr) auto 3.2em;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
 .irow.done{border-color:var(--good)}
+.sechead{margin:14px 0 -2px;padding-bottom:4px;border-bottom:2px solid var(--teal)}
+.pnbtn{font:inherit;font-weight:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 .itot{display:grid;justify-items:center;line-height:1.1;font-variant-numeric:tabular-nums}
 .itot span{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .pn{font-weight:600}
@@ -1206,6 +1208,11 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const inum=v=>v==null||v===''?null:+v;
   // Skip counts saved with no numbers (e.g. a test count finished empty) so "last count" stays meaningful
   const ilast=()=>{const I=INV.st; const has=h=>h&&h.counts&&Object.keys(h.counts).length>0; return I.hist.find(h=>has(h)&&(!I.cur||h.date<I.cur.date))||I.hist.find(has)||null;};
+  // Completed counts (Rick, Nov 23 2026): each finished count is saved under its own key (date + time), never just the date
+  const ihasCounts=h=>h&&h.counts&&Object.keys(h.counts).length>0;
+  const ihistKey=h=>h.key||h.id;
+  const ihistFor=key=>INV.st.hist.find(h=>h.key===key)||INV.st.hist.find(h=>h.id===key)||null;
+  const itime=iso=>iso?new Date(iso).toLocaleString('en-US',{weekday:'short',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
   const ival=(pid,a)=>{const e=INV.st.entries[pid]; return e? inum(e[a]) : null;};
   const ilval=(pid,a)=>{const L=ilast(); return L&&L.counts&&L.counts[pid]? inum(L.counts[pid][a]) : null;};
   const itot=pid=>INV.areas.reduce((s,[a])=>s+(ival(pid,a)||0),0);
@@ -1443,6 +1450,40 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     document.querySelectorAll('[data-exrow]').forEach(r=>{ const k=+r.dataset.exrow; const oz=r.querySelector('.ex-oz').value.trim(); c.extras[k]={name:r.querySelector('.ex-name').value.trim(),type:r.querySelector('.ex-type').value,p:r.querySelector('.ex-p').value,oz:oz===''?null:+oz.replace(',','.')}; });
     return c; }
 
+  // Edit a product (Rick, Nov 23 2026): tap the name to fix name, type, size, vendor or cost. The id never changes, so past counts stay linked.
+  function peditForm(p){ const I=INV.st; const groups=[...new Set(I.cat.map(x=>x.g).filter(Boolean))].sort(); const vends=[...new Set(I.cat.map(x=>x.v).filter(Boolean))].sort();
+    const dup=I.cat.filter(x=>x.id===p.id).length>1;
+    return `<section class="card" id="peditbox"><h2>Edit product</h2>
+      <form class="newform" data-peditform="1"><label for="pe-name">Product name<input id="pe-name" required value="${esc(p.n)}"></label>
+      <label for="pe-type">Type<select id="pe-type">${groups.map(g=>`<option${g===p.g?' selected':''}>${esc(g)}</option>`).join('')}<option value="__new">New type…</option></select></label>
+      <label for="pe-newtype" id="pe-newtype-l" hidden>New type name<input id="pe-newtype" placeholder="e.g. Rye Whiskey"></label>
+      <label for="pe-size">Size<input id="pe-size" value="${esc(p.s||'')}" placeholder="750ml, 1L, 1/2 BBL, 12oz"></label>
+      <label for="pe-vend">Vendor<input id="pe-vend" list="pe-vends" value="${esc(p.v||'')}"><datalist id="pe-vends">${vends.map(v=>`<option value="${esc(v)}">`).join('')}</datalist></label>
+      <label for="pe-price">Cost per unit ($)<input id="pe-price" inputmode="decimal" value="${p.price??''}" placeholder="from the latest invoice"></label>
+      ${dup?`<div class="note" style="color:var(--warn)">This product is listed ${I.cat.filter(x=>x.id===p.id).length} times (${I.cat.filter(x=>x.id===p.id).map(x=>esc(x.g)).join(', ')}) and they share one count. Remove the extra listing below, or add a separate product for the other kind (e.g. bottles vs. kegs).</div>`:''}
+      <div class="bagbtns"><button type="submit" class="btn">Save changes</button><button type="button" class="btn ghost" data-pecancel="1">Cancel</button>${S.isOwner?`<button type="button" class="btn ghost" data-peremove="ask">Remove from list</button>`:''}</div>
+      ${I.peRemove?`<div class="cancelwarn" role="alert"><b>Remove ${esc(p.n)}${dup?' ('+esc(p.g)+')':''} from the product list? Past counts keep their numbers; it just won't show for new counts. A backup is kept.</b><span class="bagbtns"><button type="button" class="mini danger" data-peremove="yes">Yes, remove</button><button type="button" class="mini" data-peremove="no">Keep it</button></span></div>`:''}
+      <div class="note" id="pemsg" role="status"></div></form></section>`; }
+  async function pedSave(patch, remove){ const I=INV.st, db=window.__db; const {id,i}=I.pedit; const p=I.cat.find(x=>x.id===id&&+x.i===+i); if(!p) return;
+    const now=new Date().toISOString();
+    if(patch&&patch.g&&patch.g!==p.g){ const gi=I.cat.filter(x=>x.g===patch.g).map(x=>+x.i); patch.i=gi.length? Math.max(...gi)+0.5 : 9999; }
+    if(remove) await db.collection(INV.pfx+'archive').doc(`${id}--${Date.now().toString(36)}`).set({...p,archivedAt:now,archivedFrom:p.isNew?'new':'parts'});
+    if(p.isNew){ const ref=db.collection(INV.pfx+'new').doc(id); if(remove){ await ref.delete(); } else { const cur=(await ref.get()).data()||{}; await ref.set({...cur,...patch,editedAt:now}); } return; }
+    const ps=await db.collection(INV.pfx+'parts').get(); for(const d of ps.docs){ const data=d.data(); const arr=data.products||[]; const k=arr.findIndex(x=>x.id===id&&+x.i===+i); if(k<0) continue;
+      const next=remove? arr.filter((x,j)=>j!==k) : arr.map((x,j)=>j===k?{...x,...patch}:x); await db.collection(INV.pfx+'parts').doc(d.id).set({...data,products:next}); return; }
+    throw new Error('not found'); }
+  function completedInv(){ const I=INV.st; const all=I.hist.filter(ihasCounts); if(!all.length) return '';
+    const list=I.hall? all : all.slice(0,8); const sumq=c=>Object.values(c||{}).reduce((s,e)=>s+INV.areas.reduce((t,[a])=>t+(inum(e[a])||0),0),0);
+    const cur=I.cur&&I.cur.finished? (I.cur.key||I.cur.date) : null;
+    const rows=list.map(h=>{ const n=Object.keys(h.counts).length, key=ihistKey(h), val=invValue(INV,h.counts);
+      const reo = I.hreopen===h.id? `<div class="cancelwarn" role="alert"><b>Reopen the ${fmtDay(h.date)} count? You can change numbers, then tap Finish Count again.</b><span class="bagbtns"><button type="button" class="mini go" data-ihreopen="yes:${esc(h.id)}">Yes, reopen</button><button type="button" class="mini" data-ihreopen="no">Cancel</button></span></div>` : '';
+      return `<li><div class="gtop"><b>${esc(longDay(h.date))}${cur===key?' <span class="pill ok">latest</span>':''}</b><span class="bagbtns"><button type="button" class="mini" data-ihview="${esc(h.id)}">${I.hview===h.id?'Hide':'View'}</button>${S.isOwner?`<button type="button" class="mini" data-ihreopen="${esc(h.id)}">Reopen</button>`:''}</span></div>
+        <div class="gmeta"><span>${h.finishedAt?'Finished '+esc(itime(h.finishedAt)):'Imported'}</span>${h.by?`<span>${esc(h.by)}</span>`:''}<span>${n} products</span>${val.v?`<span>${money(val.v,0)}</span>`:''}</div>${reo}</li>`; }).join('');
+    let view='';
+    const vh=I.hview&&all.find(h=>h.id===I.hview);
+    if(vh){ const by={}; I.cat.forEach(p=>{ if(!by[p.id]) by[p.id]=p; }); const ids=Object.keys(vh.counts).sort((a,b)=>String((by[a]||{}).n||a).localeCompare(String((by[b]||{}).n||b),undefined,{sensitivity:'base',numeric:true}));
+      view=`<section class="card" id="ihview"><h2>${esc(fmtDay(vh.date))} count · ${ids.length} products</h2><div class="note">${vh.finishedAt?'Finished '+esc(itime(vh.finishedAt)):''}${vh.by?' · '+esc(vh.by):''} · read only · tap a product name to edit it</div>${(()=>{ if(!I.pedit) return ''; const ep=I.cat.find(x=>x.id===I.pedit.id&&+x.i===+I.pedit.i); return ep? peditForm(ep) : ''; })()}<div class="scroll tscroll" style="max-height:60vh"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${esc(l)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${ids.map(pid=>{ const c=vh.counts[pid]||{}; const t=INV.areas.reduce((s,[a])=>s+(inum(c[a])||0),0); const bp=by[pid]; return `<tr><td>${bp&&S.full?`<button type="button" class="pnbtn" data-pedit="${esc(bp.id)}" data-pi="${bp.i}">${esc(bp.n)}</button>`:esc((bp||{}).n||pid)}</td>${INV.areas.map(([a])=>`<td class="r">${c[a]??''}</td>`).join('')}<td class="r"><b>${+t.toFixed(2)}</b></td></tr>`; }).join('')}</tbody></table></div><button type="button" class="btn ghost" data-ihview="${esc(vh.id)}">Close</button></section>`; }
+    return `<section class="card"><h2>All finished counts</h2><div class="note">Every finished ${INV.label.toLowerCase()} count, newest first.${S.isOwner?' Reopen one to fix a number, then tap Finish Count again.':''}</div><ul class="guests" style="margin:0">${rows}</ul>${all.length>8?`<button type="button" class="baglink" data-ihmore="1">${I.hall?'Show fewer':'Show all '+all.length}</button>`:''}</section>${view}`; }
   function inventoryInner(){
     const I=INV.st, L=ilast(), today=new Date().toLocaleDateString('en-CA');
     if(!I.cat.length) return `<div><h1>${INV.label} inventory</h1></div><div class="empty">${I.catErr?'Couldn\'t load the product list: '+esc(I.catErr):'Loading the product list…'}</div>`;
@@ -1453,10 +1494,13 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <section class="card"><h2>${fmtDay(I.cur.date)} count saved</h2><div>${ncount} product${ncount===1?'':'s'} counted so far. Everything is saved; pick up where you left off anytime.</div>
       <div class="bagbtns"><button type="button" class="btn" data-iexit="back">Continue count</button>${I.confirmDelete||!S.isOwner?'':`<button type="button" class="btn ghost" data-idelete="ask">Delete count</button>`}</div>${S.isOwner?'':'<div class="note">Counts can be updated anytime. Only Rick or Dave can delete a count.</div>'}</section>${I.confirmDelete&&S.isOwner?delBox(ncount+' product'+(ncount===1?'':'s')+' counted'):''}`;
     if(!I.cur||I.cur.closed) return `<div><h1>${INV.label} inventory</h1><div class="sub">Last count: ${H?longDay(H.date)+' · '+esc(H.by||'')+(H.finishedAt?' · finished '+new Date(H.finishedAt).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):''):'none yet'}</div></div>
-      ${I.cur&&I.cur.finished?`<section class="card"><h2>✓ ${fmtDay(I.cur.date)} Count Finished · ${INV.label.toUpperCase()}</h2><div class="note">Locked${I.cur.finishedAt?' '+new Date(I.cur.finishedAt).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):''}. I'll process it Wednesday morning: usage, Toast sales and invoice costs.</div><div class="bagbtns"><button type="button" class="btn ghost" data-ireopen="1">Reopen count</button>${I.confirmDelete||!S.isOwner?'':`<button type="button" class="btn ghost" data-idelete="ask">Delete count</button>`}</div><div class="note">Found something after the fact? Reopen it, fix the number, then tap Finish Count again.</div></section>${I.confirmDelete&&S.isOwner?delBox('finished and locked'):''}`:''}
       <section class="card"><h2>Start a count</h2><div>Counting today? Start ${fmtDay(today)}'s count. One person counts, one enters, one area at a time.</div>
-      <button type="button" class="btn" data-istart="${today}">Start ${fmtDay(today)} count</button>
-      <div class="note">On paper instead? Start the count, open Photos and add a picture of each page. I'll enter it Wednesday morning.</div></section>`;
+      ${I.confirmStart?(()=>{const d=I.hist.filter(h=>h.date===today&&ihasCounts(h))[0]; return `<div class="cancelwarn" id="istartwarn" role="alert"><b>A ${INV.label.toLowerCase()} count was already finished today${d&&d.finishedAt?' at '+new Date(d.finishedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):''}${d&&d.by?' by '+esc(d.by):''}. Start a new one anyway?</b><div class="note">The finished count stays saved under Completed Inventories below.</div><span class="bagbtns"><button type="button" class="mini go" data-istart="${today}" data-force="1">Start anyway</button><button type="button" class="mini" data-istartno="1">Cancel</button></span></div>`;})()
+      :`<button type="button" class="btn" data-istart="${today}">Start ${fmtDay(today)} count</button>`}
+      <div class="note">On paper instead? Start the count, open Photos and add a picture of each page. I'll enter it Wednesday morning.</div></section>
+      ${(I.cur&&I.cur.finished)||I.hist.some(ihasCounts)?`<h2 class="sechead">Completed Inventories</h2>`:''}
+      ${I.cur&&I.cur.finished?`<section class="card"><h2>✓ ${fmtDay(I.cur.date)} Count Finished · ${INV.label.toUpperCase()}</h2><div class="note">Locked${I.cur.finishedAt?' '+new Date(I.cur.finishedAt).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):''}. I'll process it Wednesday morning: usage, Toast sales and invoice costs.</div><div class="bagbtns"><button type="button" class="btn ghost" data-ireopen="1">Reopen count</button>${I.confirmDelete||!S.isOwner?'':`<button type="button" class="btn ghost" data-idelete="ask">Delete count</button>`}</div><div class="note">Found something after the fact? Reopen it, fix the number, then tap Finish Count again.</div></section>${I.confirmDelete&&S.isOwner?delBox('finished and locked'):''}`:''}
+      ${completedInv()}`;
     const cnt=a=>I.cat.filter(p=>ival(p.id,a)!=null).length;
     const vends=[...new Set(I.cat.map(p=>p.v).filter(Boolean))].sort(); if(I.vend&&!vends.includes(I.vend)) I.vend='';
     const vok=p=>!I.vend||p.v===I.vend;
@@ -1513,9 +1557,10 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     for(const p of list){
       const hh=srt.head(p); if(hh!==g){ g=hh; out+=`<div class="grp">${esc(g)}</div>`; }
       const v=ival(p.id,a), l=ilval(p.id,a);
-      out+=`<div class="irow ${v!=null?'done':''}"><div style="min-width:0"><div class="pn">${esc(p.n)}${p.isNew?' <span class="pill bad" style="font-size:.65rem">new</span>':''}</div><div class="note">${p.s?esc(p.s)+' · ':''}last ${l==null?'–':l}</div></div>
+      out+=`<div class="irow ${v!=null?'done':''}"><div style="min-width:0"><div class="pn">${S.full?`<button type="button" class="pnbtn" data-pedit="${esc(p.id)}" data-pi="${p.i}" aria-label="Edit ${esc(p.n)}">${esc(p.n)}</button>`:esc(p.n)}${p.isNew?' <span class="pill bad" style="font-size:.65rem">new</span>':''}</div><div class="note">${p.s?esc(p.s)+' · ':''}last ${l==null?'–':l}</div></div>
         <div class="ictl"><button type="button" data-istep="-1" data-p="${p.id}" data-a="${a}" aria-label="One less ${esc(p.n)}">−</button><input id="in-${a}-${p.id}" class="${v!=null?'has':''}" inputmode="decimal" value="${v==null?'':v}" data-p="${p.id}" data-a="${a}" aria-label="${esc(p.n)} in ${label}"><button type="button" data-istep="1" data-p="${p.id}" data-a="${a}" aria-label="One more ${esc(p.n)}">+</button></div><div class="itot" aria-label="Total in all areas"><b>${INV.areas.some(([k])=>ival(p.id,k)!=null)?+itot(p.id).toFixed(2):'–'}</b><span>total</span></div><div class="parline"><label for="par-${p.id}">Par</label><input id="par-${p.id}" class="ipar" inputmode="decimal" value="${ipar(p.id)??''}" data-p="${p.id}" aria-label="Par for ${esc(p.n)}" placeholder="–"><label class="iloc" for="loc-${p.id}">Lives in <select id="loc-${p.id}" class="ilocsel" data-p="${p.id}" aria-label="Where ${esc(p.n)} is kept">${(()=>{const h=ihome(p); return (h?'':'<option value="" selected>Not set</option>')+INV.areas.map(([k,l])=>`<option value="${k}"${h===k?' selected':''}>${l}</option>`).join('');})()}</select></label>${(()=>{const o=iorder(p.id); return o>0?`<span class="obadge">order ${o}</span>`:'';})()}</div></div>`;
     }
+    if(I.pedit){ const ep=I.cat.find(x=>x.id===I.pedit.id&&+x.i===+I.pedit.i); if(ep){ const at=out.lastIndexOf(`data-pedit="${esc(ep.id)}" data-pi="${ep.i}"`); const rowEnd=at<0?-1:out.indexOf('<div class="irow',at); const form=peditForm(ep); out = at<0? form+out : (rowEnd<0? out+form : out.slice(0,rowEnd)+form+out.slice(rowEnd)); } }
     return out + `<div style="margin-top:6px">${I.adding?addForm():'<button type="button" class="btn ghost" data-addprod="1">+ Add a product not on the list</button>'}</div>`
   }
   function cancelUI(){ const I=INV.st; const n=I.cat.filter(p=>INV.areas.some(([a])=>ival(p.id,a)!=null)).length;
@@ -1604,6 +1649,12 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     doc.complete = !!(prev&&prev.complete) || done; if(done){ doc.completedBy=doc.updatedBy; doc.completedAt=doc.updatedAt; } else if(prev&&prev.completedBy){ doc.completedBy=prev.completedBy; doc.completedAt=prev.completedAt; }
     if(done && !d.pours.length){ alertBox('Add at least one product before marking the recipe complete.'); return; }
     try{ await window.__db.collection('invrecipes').doc(id).set(doc); if(doc.complete) await sendMenuReq('bar',id,doc,t,prev&&prev.name); S.rec.edit=null; S.rec.draft=null; render(); }catch(x){ alertBox("Couldn't save that recipe. Check your connection."); } });
+  document.addEventListener('change',e=>{ if(e.target&&e.target.id==='pe-type'){ const l=document.getElementById('pe-newtype-l'); if(l) l.hidden=e.target.value!=='__new'; } });
+  document.addEventListener('submit',async e=>{ const pf=e.target.closest('[data-peditform]'); if(!pf) return; e.preventDefault(); const val=id=>(document.getElementById(id)||{value:''}).value.trim();
+    const n=val('pe-name'); if(!n) return; let g=val('pe-type'); if(g==='__new') g=val('pe-newtype'); if(!g){ document.getElementById('pemsg').textContent='Pick a type or name the new one.'; return; }
+    const pr=val('pe-price').replace(/[$,]/g,''); if(pr!==''&&(isNaN(+pr)||+pr<0)){ document.getElementById('pemsg').textContent='Cost should be a number like 24.99'; return; }
+    const patch={n,g,s:val('pe-size'),v:val('pe-vend'),price:pr===''?null:+(+pr).toFixed(2)};
+    try{ await pedSave(patch,false); INV.st.pedit=null; render(); }catch(x){ const m=document.getElementById('pemsg'); if(m) m.textContent="Couldn't save. Check your connection and try again."; } });
   document.addEventListener('submit',async e=>{ const f=e.target.closest('[data-newprod]'); if(!f) return; e.preventDefault();
     const name=document.getElementById('np-name').value.trim(); if(!name) return; const g=document.getElementById('np-type').value; const sz=document.getElementById('np-size').value.trim(); const vd=(document.getElementById('np-vend')||{value:''}).value.trim();
     const id=('new-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')).slice(0,60); if(INV.st.cat.some(x=>x.id===id||x.n.toLowerCase()===name.toLowerCase())){ alertBox(name+' is already on the list. Search for it.'); return; }
@@ -1723,20 +1774,36 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const ivd=e.target.closest('[data-ivend]'); if(ivd){ INV.st.vend=ivd.dataset.ivend; try{localStorage.setItem('hq.vend.'+INV.key,INV.st.vend);}catch(x){} render(); document.getElementById('main').scrollTop=0; return; }
     const ia=e.target.closest('[data-iarea]'); if(ia){ INV.st.view=ia.dataset.iarea; render(); document.getElementById('main').scrollTop=0; return; }
     const is=e.target.closest('[data-istep]'); if(is){ const pp=is.dataset.p,aa=is.dataset.a; let nv=+((ival(pp,aa)||0)+ +is.dataset.istep).toFixed(2); if(nv<0) nv=0; isave(pp,aa,nv).then(render); return; }
-    const st=e.target.closest('[data-istart]'); if(st){ INV.st.exited=false; INV.st.confirmDelete=false; window.__db.doc(INV.pfx+'meta/current').set({date:st.dataset.istart,key:st.dataset.istart+'-'+Date.now().toString(36),startedAt:new Date().toISOString(),closed:false}).catch(()=>{}); return; }
+    const sn=e.target.closest('[data-istartno]'); if(sn){ INV.st.confirmStart=false; render(); return; }
+    const st=e.target.closest('[data-istart]'); if(st){ const done=INV.st.hist.filter(h=>h.date===st.dataset.istart&&ihasCounts(h)); if(done.length&&!st.dataset.force){ INV.st.confirmStart=true; render(); setTimeout(()=>{const b=document.getElementById('istartwarn'); b&&b.scrollIntoView({block:'center'});},30); return; } INV.st.confirmStart=false; INV.st.exited=false; INV.st.confirmDelete=false; window.__db.doc(INV.pfx+'meta/current').set({date:st.dataset.istart,key:st.dataset.istart+'-'+Date.now().toString(36),startedAt:new Date().toISOString(),closed:false}).catch(()=>{}); return; }
+    const pe=e.target.closest('[data-pedit]'); if(pe){ if(!S.full) return; const k={id:pe.dataset.pedit,i:+pe.dataset.pi}; INV.st.pedit = INV.st.pedit&&INV.st.pedit.id===k.id&&INV.st.pedit.i===k.i? null : k; INV.st.peRemove=false; render(); setTimeout(()=>{const b=document.getElementById('peditbox'); b&&b.scrollIntoView({block:'center'}); const n=document.getElementById('pe-name'); n&&n.focus();},30); return; }
+    if(e.target.closest('[data-pecancel]')){ INV.st.pedit=null; INV.st.peRemove=false; render(); return; }
+    const prm=e.target.closest('[data-peremove]'); if(prm){ if(!S.isOwner) return; const v=prm.dataset.peremove; if(v!=='yes'){ INV.st.peRemove=v==='ask'; render(); return; } try{ await pedSave(null,true); INV.st.pedit=null; INV.st.peRemove=false; render(); }catch(x){ alertBox("Couldn't remove that product. Try again."); } return; }
+    const hv=e.target.closest('[data-ihview]'); if(hv){ INV.st.hview = INV.st.hview===hv.dataset.ihview? null : hv.dataset.ihview; INV.st.hreopen=null; render(); setTimeout(()=>{const b=document.getElementById('ihview'); b&&b.scrollIntoView({block:'start'});},30); return; }
+    const hm=e.target.closest('[data-ihmore]'); if(hm){ INV.st.hall=!INV.st.hall; render(); return; }
+    const hr=e.target.closest('[data-ihreopen]'); if(hr){ if(!S.isOwner) return; const I=INV.st; const v=hr.dataset.ihreopen;
+      if(!v.startsWith('yes:')){ I.hreopen = v==='no'? null : v; render(); return; }
+      const h=I.hist.find(x=>x.id===v.slice(4)); I.hreopen=null; if(!h) return; if(I.cur&&!I.cur.closed){ alertBox("Finish or exit the count in progress first."); return; }
+      const db=window.__db, key=ihistKey(h);
+      try{ const q=await db.collection(INV.pfx+'entries').where('key','==',key).get();
+        if(!q.docs.length){ for(const [pid,c] of Object.entries(h.counts||{})){ await db.collection(INV.pfx+'entries').doc(`${key}--${pid}`).set({date:h.date,key,pid,...Object.fromEntries(INV.areas.map(([a])=>[a,c[a]??null])),order:null,updatedAt:new Date().toISOString()}); } }
+        await db.doc(INV.pfx+'meta/current').set({date:h.date,key,startedAt:h.startedAt||h.finishedAt||new Date().toISOString(),closed:false,finished:false,reopenedAt:new Date().toISOString()});
+        I.hview=null; I.exited=false; render(); document.getElementById('main').scrollTop=0; }
+      catch(x){ alertBox("Couldn't reopen that count. Try again."); } return; }
     const ro=e.target.closest('[data-ireopen]'); if(ro){ const c={...INV.st.cur,closed:false,finished:false,reopenedAt:new Date().toISOString()}; delete c.finishedAt; window.__db.doc(INV.pfx+'meta/current').set(c).catch(()=>alertBox("Couldn't reopen the count. Try again.")); return; }
     const fx=e.target.closest('[data-ifinish]'); if(fx){ const v=fx.dataset.ifinish; INV.st.confirmCancel=false;
       if(v==='ask'){ INV.st.confirmFinish=true; render(); } else if(v==='no'){ INV.st.confirmFinish=false; render(); }
       else { INV.st.confirmFinish=false; const I=INV.st, db=window.__db; const counts={}; Object.values(I.entries).forEach(x=>{ const o={}; INV.areas.forEach(([a])=>{ if(x[a]!=null&&x[a]!=='') o[a]=x[a]; }); if(Object.keys(o).length) counts[x.pid]=o; });
         const now=new Date().toISOString();
-        db.doc(INV.pfx+'history/'+I.cur.date).set({date:I.cur.date,key:I.cur.key||I.cur.date,by:INV.key==='bar'?'Dave & Fernando (app)':'Food count (app)',counts,finishedAt:now,source:'app'})
+        const hk=I.cur.key||I.cur.date, ex=ihistFor(hk), hid=ex?ex.id:hk;
+        db.doc(INV.pfx+'history/'+hid).set({date:I.cur.date,key:hk,by:(ex&&ex.by)||(INV.key==='bar'?'Dave & Fernando (app)':'Food count (app)'),counts,...(I.cur.startedAt?{startedAt:I.cur.startedAt}:{}),finishedAt:now,source:'app'})
           .then(()=>db.doc(INV.pfx+'meta/current').set({...I.cur,closed:true,finished:true,finishedAt:now}))
           .catch(()=>alertBox("Couldn't finish the count. Check your connection and try again.")); }
       return; }
     const ex=e.target.closest('[data-iexit]'); if(ex){ INV.st.exited = ex.dataset.iexit!=='back'; INV.st.confirmDelete=false; INV.st.confirmFinish=false; INV.st.confirmCancel=false; render(); document.getElementById('main').scrollTop=0; return; }
     const dl=e.target.closest('[data-idelete]'); if(dl){ if(!S.isOwner) return; const v=dl.dataset.idelete; const I=INV.st; if(v!=='yes'){ I.confirmDelete=v==='ask'; render(); if(v==='ask') setTimeout(()=>{const b=document.getElementById('delbox'); b&&b.scrollIntoView({block:'center'});},30); return; }
       I.confirmDelete=false; const db=window.__db, now=new Date().toISOString(), cur=I.cur;
-      try{ if(cur.finished){ await db.doc(INV.pfx+'history/'+cur.date).delete(); }
+      try{ if(cur.finished){ const ex=ihistFor(cur.key||cur.date); if(ex) await db.doc(INV.pfx+'history/'+ex.id).delete(); }
         const c={...cur,closed:true,cancelled:true,deleted:true,deletedAt:now,finished:false}; delete c.finishedAt; await db.doc(INV.pfx+'meta/current').set(c); I.exited=false; render(); }
       catch(x){ alertBox("Couldn't delete the count. Try again."); } return; }
     const cx=e.target.closest('[data-icancel]'); if(cx){ if(INV.st.cat.some(p=>INV.areas.some(([a])=>ival(p.id,a)!=null))&&!S.isOwner){ INV.st.confirmCancel=false; render(); return; } const v=cx.dataset.icancel; if(v==='ask'){ INV.st.confirmFinish=false; INV.st.confirmCancel=true; render(); } else if(v==='no'){ INV.st.confirmCancel=false; render(); } else { INV.st.confirmCancel=false; window.__db.doc(INV.pfx+'meta/current').set({...INV.st.cur,closed:true,cancelled:true,cancelledAt:new Date().toISOString()}).catch(()=>alertBox("Couldn't cancel the count. Try again.")); } return; }
@@ -1802,7 +1869,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   if(C.key==='food'){ db.collection('finvrecipes').onSnapshot(s=>{ S.frecipes={}; s.docs.forEach(d=>S.frecipes[d.id]={id:d.id,...d.data()}); if(S.panel==='inventory'&&S.rec.on&&S.rec.kind==='food'&&!S.frec.edit) render(); },()=>{}); }
   if(C.key==='bar'){ db.collection('invrecipes').onSnapshot(s=>{ S.recipes={}; s.docs.forEach(d=>S.recipes[d.id]={id:d.id,...d.data()}); if(S.panel==='inventory'&&S.rec.on&&!S.rec.edit) render(); },()=>{}); db.doc('invrecmods/map').onSnapshot(s=>{ const dd=s.exists?s.data():{}; S.recMods=dd.mods||[]; S.recCfg=dd.spirits?{spirits:dd.spirits,extras:dd.extras||[]}:null; if(S.panel==='inventory'&&S.rec.on&&S.rec.tab==='mods'&&!S.rec.mods) render(); },()=>{}); }
   db.collection(C.pfx+'parts').onSnapshot(s=>{ C.st.base=s.docs.flatMap(d=>d.data().products||[]); C.st.cat=[...C.st.base,...(C.st.newp||[])].sort((a,b)=>a.i-b.i); C.st.catErr=null; if((S.panel==='inventory'&&S.invKind===C.key)) render(); },err=>{ C.st.catErr=String(err&&err.message||err); if((S.panel==='inventory'&&S.invKind===C.key)) render(); });
-  db.collection(C.pfx+'history').onSnapshot(s=>{ C.st.hist=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.date.localeCompare(a.date)); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
+  db.collection(C.pfx+'history').onSnapshot(s=>{ C.st.hist=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.date.localeCompare(a.date)||String(b.finishedAt||'').localeCompare(String(a.finishedAt||''))); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
   db.collection(C.pfx+'photos').onSnapshot(s=>{ C.st.photos=s.docs.map(d=>d.data()); if((S.panel==='inventory'&&S.invKind===C.key)) render(); },()=>{});
   let invUnsub=null;
   db.doc(C.pfx+'meta/current').onSnapshot(s=>{ C.st.cur=s.exists?s.data():null; if(invUnsub) invUnsub();
