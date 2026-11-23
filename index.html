@@ -1209,6 +1209,15 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const ilval=(pid,a)=>{const L=ilast(); return L&&L.counts&&L.counts[pid]? inum(L.counts[pid][a]) : null;};
   const itot=pid=>INV.areas.reduce((s,[a])=>s+(ival(pid,a)||0),0);
   const iltot=pid=>INV.areas.reduce((s,[a])=>s+(ilval(pid,a)||0),0);
+  // Inventory value (Rick, Nov 22 2026): count x product cost, for bar and food
+  function invValue(C, src){ const cat=C.st.cat||[]; const by={}; cat.forEach(p=>{ if(!by[p.id]) by[p.id]=p; }); let v=0, n=0, noCost=0;
+    Object.entries(src||{}).forEach(([pid,e])=>{ if(!e) return; const q=C.areas.reduce((s,[a])=>s+(inum(e[a])||0),0); if(!q) return; n++; const p=by[pid]; const pr=p&&+p.price; if(pr>0) v+=q*pr; else noCost++; });
+    return {v,n,noCost}; }
+  function invLastFor(C){ const I=C.st; const has=h=>h&&h.counts&&Object.keys(h.counts).length>0; return (I.hist||[]).find(h=>has(h)&&(!I.cur||h.date<I.cur.date))||(I.hist||[]).find(has)||null; }
+  function invValueCard(){ const rows=['bar','food'].map(k=>{ const C=INVS[k]; const L=invLastFor(C); const lv=L?invValue(C,L.counts):null; const cur=C.st.cur&&C===INV&&Object.keys(C.st.entries||{}).length?invValue(C,C.st.entries):null; return {C,L,lv,cur}; });
+    const tot=rows.reduce((a,r)=>a+(r.lv?r.lv.v:0),0);
+    const tile=r=>`<div class="tile"><div class="k">${r.C.label} inventory</div><div class="n">${r.lv?money(r.lv.v,0):'–'}</div><div class="note">${r.L?'Last count '+fmtDay(r.L.date)+' · '+r.lv.n+(r.lv.n===1?' product':' products'):'No finished count yet'}${r.lv&&r.lv.noCost?` · <span style="color:var(--warn)">${r.lv.noCost} without a cost</span>`:''}</div>${r.cur?`<div class="note"><b>This count so far: ${money(r.cur.v,0)}</b> (${r.cur.n} ${r.cur.n===1?'product':'products'} counted)</div>`:''}</div>`;
+    return `<section class="card"><h2>Inventory value</h2><div class="tiles">${rows.map(tile).join('')}<div class="tile"><div class="k">Bar + food</div><div class="n">${money(tot,0)}</div><div class="note">At last finished counts</div></div></div><div class="note">Count × product cost from the latest invoices. Products without a cost aren't included.</div></section>`; }
   // Sorting for the count list (Rick, Nov 22 2026)
   const ISORTS=[['type','Type (A–Z)'],['maker','Maker (A–Z)'],['az','Name A–Z'],['za','Name Z–A'],['value','Highest value'],['sheet','Count sheet order']];
   const cmpN=(x,y)=>String(x).localeCompare(String(y),undefined,{sensitivity:'base',numeric:true});
@@ -1477,10 +1486,10 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
         : `<div class="empty">Nothing to order yet. Set a Par on products, and anything below par shows up here.</div>`)
         + (noPar?`<div class="note">${noPar} counted products don't have a par yet.</div>`:'');
     }
-    if(I.view==='totals'){
+    if(I.view==='totals'){ const valCard=S.full?invValueCard():'';
       const rows=I.cat.filter(p=>vok(p)&&(itot(p.id)||iltot(p.id))).sort((x,y)=>String(x.n).localeCompare(String(y.n),undefined,{sensitivity:'base',numeric:true}));
       const counted=I.cat.filter(p=>INV.areas.some(([a])=>ival(p.id,a)!=null)).length;
-      return title+filt+`<section class="card"><h2>${counted} products counted${I.vend?' · showing '+esc(I.vend):''}</h2><div class="scroll tscroll"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="r">Total</th><th class="r">Last</th><th class="r">Par</th><th class="r">Order</th></tr></thead>
+      return title+filt+valCard+`<section class="card"><h2>${counted} products counted${I.vend?' · showing '+esc(I.vend):''}</h2><div class="scroll tscroll"><table class="wide"><thead><tr><th>Product</th>${INV.areas.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="r">Total</th><th class="r">Last</th><th class="r">Par</th><th class="r">Order</th></tr></thead>
       <tbody>${rows.map(p=>`<tr><td>${esc(p.n)}</td>${INV.areas.map(([a,l])=>`<td class="r tc">${I.cur?`<input class="tcell" id="tc-${p.id}-${a}" inputmode="decimal" data-p="${p.id}" data-a="${a}" value="${ival(p.id,a)??''}" placeholder="–" aria-label="${esc(p.n)} in ${esc(l)}">`:(ival(p.id,a)??'')}</td>`).join('')}<td class="r"><b>${+itot(p.id).toFixed(2)}</b></td><td class="r">${+iltot(p.id).toFixed(2)||'–'}</td><td class="r">${ipar(p.id)??'–'}</td><td class="r">${iorder(p.id)?`<b style="color:var(--warn)">${iorder(p.id)}</b>`:'–'}</td></tr>`).join('')}</tbody></table></div>
       <div class="note">Wednesday morning I'll work out usage (last count + deliveries − this count) and compare it with Toast sales and invoice costs.</div></section>`
     }
