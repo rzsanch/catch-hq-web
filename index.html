@@ -1318,7 +1318,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       <div class="note">Count × each product's current cost (latest invoice). "No cost" = products counted that still need a cost; tap a product name during a count to add one.</div></section>`; }).join('');
     return out; }
   const rlev=(a,b)=>{ if(Math.abs(a.length-b.length)>2) return 9; const d=Array.from({length:a.length+1},(_,i)=>[i]); for(let j=1;j<=b.length;j++) d[0][j]=j; for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[a.length][b.length]; };
-  const rnear=(a,b)=>{ const x=rnorm(a), y=rnorm(b); return x.length>=6&&y.length>=6&&x!==y&&rlev(x,y)<=2; };
+  const rnear=(a,b)=>{ const x=rnorm(a), y=rnorm(b); const dg=t=>t.replace(/[^0-9]/g,''); return x.length>=6&&y.length>=6&&x!==y&&x.slice(0,2)===y.slice(0,2)&&dg(x)===dg(y)&&rlev(x,y)<=2; };
   function repRecon(){ S.invKind='bar'; INV=INVS.bar; const C=INVS.bar, cat=C.st.cat||[]; const ped=(()=>{ if(!INV.st.pedit) return ''; const ep=cat.find(x=>x.id===INV.st.pedit.id&&+x.i===+INV.st.pedit.i); return ep? peditForm(ep) : ''; })();
     const items=(S.tmenu||[]); if(!cat.length) return '<div class="empty">Loading the product list…</div>';
     if(!items.length) return '<div class="empty">No Toast menu snapshot yet.</div>';
