@@ -1042,7 +1042,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const nDays=hist? (+hist.days||0) : days.length;
     const rows=Object.entries(per).sort((a,b)=>b[1].total-a[1].total);
     const T=k=>rows.reduce((a,[,o])=>a+o[k],0); const c=v=>v?money(v,0):'–';
-    const carry=S.bags.filter(b=>b.date<wk && !b.paid && owedOf(b)>0); const carryTot=carry.reduce((a,b)=>a+owedOf(b),0);
+    const carry=S.bags.filter(b=>b.date<wk && !b.paid && owedOf(b)>0 && !/^Julio\b/i.test(b.server||'')); const carryTot=carry.reduce((a,b)=>a+owedOf(b),0);
     return `<div><h1>Tip-outs · week</h1><div class="sub">${f(wk)}–${f(endIso)} · ${nDays} ${nDays===1?'day':'days'}${hist?' · from the Tips 2026 tracker, all bags paid':' so far · '+bagsDone+' of '+bagsNeed+' bags counted'}</div></div>${bar}
     ${carryTot?`<section class="card owedbox"><h2>Carried over · ${money(carryTot)}</h2><div class="note">Still owed from before this week: ${[...new Set(carry.map(b=>b.server.replace(/ \(.*\)$/,'')))].map(esc).join(', ')}. See Tips Owed for details.</div></section>`:''}
     <div class="tiles">
