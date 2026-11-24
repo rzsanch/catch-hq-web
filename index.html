@@ -1070,7 +1070,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       : `<div class="phrow note">📱 ${esc(fmtPhone(ph))} <button type="button" class="linkbtn" data-phedit="${esc(k)}">Change</button></div>`;
     return `<div class="owednote"><div class="notetext">${esc(note)}</div>${phoneRow}<div class="bagbtns">${ph?`<a class="btn smsbtn" href="sms:${encodeURIComponent(smsNum(ph))}?&body=${encodeURIComponent(note)}">Text note</a>`:''}<button type="button" class="mini" data-copynote="${esc(note)}">Copy note</button></div></div>`; }
   function owedSummary(){
-    const open=S.bags.filter(b=>owedOf(b)>0 && !b.paid && !/^Julio\b/i.test(b.server||'')).sort((a,b)=>a.date.localeCompare(b.date));
+    const open=S.bags.filter(b=>owedOf(b)>0 && !b.paid && !/^Julio\b/i.test(b.server||'') && !/^online\s*orders?\b/i.test(b.server||'')).sort((a,b)=>a.date.localeCompare(b.date));
     const cur=mondayOf(new Date().toLocaleDateString('en-CA'));
     const f=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); const sun=w=>{ const e=new Date(w+'T12:00'); e.setDate(e.getDate()+6); return e.toISOString().slice(0,10); };
     const byWk={}; open.forEach(b=>{ const w=mondayOf(b.date); (byWk[w]=byWk[w]||[]).push(b); });
@@ -1084,7 +1084,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       +`${S.full?'<div class="note">Text note opens Messages with the note filled in; you tap Send. Phone numbers are saved for everyone who can edit The Catch HQ.</div>':''}<div class="msg note" id="bagmsg" role="status"></div>`;
   }
   // Julio (manager) never shows in tip-outs: his tips go to the kitchen through a separate process (Rick, Nov 22 2026)
-  function tipRows(d){ return ((d&&d.tipouts)||[]).filter(r=>!/^Julio\b/i.test(r.server||'')); }
+  function tipRows(d){ return ((d&&d.tipouts)||[]).filter(r=>!/^Julio\b/i.test(r.server||'')&&!/^online\s*orders?\b/i.test(r.server||'')); }
   function tipouts(d){
     const t=tipRows(d); if(!t.length) return '<div class="empty">No tip-outs for this day.</div>';
     const sum=k=>t.reduce((s,r)=>s+(r[k]||0),0);
