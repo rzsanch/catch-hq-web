@@ -712,6 +712,11 @@ details[open] .glink{visibility:hidden}
 details.evt>summary .resdesc .what::after{content:""}
 .parline{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:2px;padding-top:6px;border-top:1px dashed var(--line);font-size:.78rem;color:var(--muted)}
 .tscroll{overflow:auto;overscroll-behavior:contain}
+.tatable td,.tatable th{white-space:nowrap}.tatable td.c,.tatable th.c{text-align:center}.tatable .taoff{color:#a6a6a6;font-style:italic}.tatable .tavar{color:var(--warn);font-weight:600}.taokp,.taactp{display:none}
+.taok{min-width:34px;min-height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700;color:var(--muted,#7b8794);cursor:pointer}.taok.yes{background:var(--good);border-color:var(--good);color:#fff}.taok.no{background:var(--warn);border-color:var(--warn);color:#fff}
+.ta-act{width:5.2em;text-align:right;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:inherit;font:inherit}.tadf{color:var(--warn);font-weight:600}
+.tawsel{margin-left:6px}
+@media print{body *{visibility:hidden}.taprint,.taprint *{visibility:visible}.taprint{position:absolute;left:0;top:0;width:100%;box-shadow:none;border:0;padding:0;margin:0}.taprint .no-print,.no-print{display:none!important}.taprint .tscroll{max-height:none!important;overflow:visible!important}.taprint .taok,.taprint .ta-act{display:none!important}.taprint .taokp,.taprint .taactp{display:inline}.taprint table{width:100%;font-size:10px;table-layout:auto}.taprint td,.taprint th{padding:3px 5px!important;position:static!important}.taprint tr{break-inside:avoid}.taprint h2{font-size:15px;margin:0 0 6px}@page{size:letter landscape;margin:.35in}}
 .dline{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px}.dline .dnum{white-space:nowrap;font-variant-numeric:tabular-nums}.dline.off .dnum{color:var(--warn)}
 .ptag{font-size:.8rem;color:var(--muted);white-space:nowrap}.ptag span{font-variant-numeric:tabular-nums}
 .nstag{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:1px 6px;border-radius:999px;background:var(--bad,#c62828);color:#fff;vertical-align:1px;white-space:nowrap}
@@ -898,7 +903,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const money = (n, c=2) => n==null||isNaN(n) ? '–' : '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:c,maximumFractionDigits:c});
   const PANELS = ['glance','drawers','tipouts','discounts','promos','events','reservations','inventory','clockins','settings','admin'];
   const DAILY = ['glance','drawers','tipouts','discounts'];
-  const S = { boh:{wk:null,draft:{},editing:false,roster:null,rosterOpen:false}, bohTips:{}, bohHours:{}, bohRoster:null, bohReq:null, rep:{on:false,tab:'value'}, mq:{on:false,tab:'pending',f:'all',q:''}, rec:{on:false,kind:'bar',tab:'drinks',q:'',edit:null,draft:null,mods:null,confirmDel:false}, frec:{tab:'plate',q:'',edit:null,draft:null,confirmDel:false}, recipes:{}, recMods:[], frecipes:{}, tmenu:[], topts:[], menureqs:[], invKind:'bar', inv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'bar',q:'',all:false}, finv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'freezer',q:'',all:false}, dcounts:[], bags:[], editing:null, dayDocs:{}, tipView:'day', tipWk:0, days:[], idx:0, day:null, promos:null, pweeks:[], pw:0, evWhen:'up', resWhen:'up', other:null, events:[], clock:[], wk:0, panel:'glance', ok:false };
+  const S = { boh:{wk:null,draft:{},editing:false,roster:null,rosterOpen:false}, ta:{wk:null,saving:{}}, tipAudit:null, bohTips:{}, bohHours:{}, bohRoster:null, bohReq:null, rep:{on:false,tab:'value'}, mq:{on:false,tab:'pending',f:'all',q:''}, rec:{on:false,kind:'bar',tab:'drinks',q:'',edit:null,draft:null,mods:null,confirmDel:false}, frec:{tab:'plate',q:'',edit:null,draft:null,confirmDel:false}, recipes:{}, recMods:[], frecipes:{}, tmenu:[], topts:[], menureqs:[], invKind:'bar', inv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'bar',q:'',all:false}, finv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'freezer',q:'',all:false}, dcounts:[], bags:[], editing:null, dayDocs:{}, tipView:'day', tipWk:0, days:[], idx:0, day:null, promos:null, pweeks:[], pw:0, evWhen:'up', resWhen:'up', other:null, events:[], clock:[], wk:0, panel:'glance', ok:false };
 
   function fmtDay(iso){ const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'}); }
   function longDay(iso){ const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }
@@ -987,7 +992,43 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const bagId=(date,server)=>`${date}--${slug(server)}`;
   const owedOf=b=>b&&b.actual!=null&&b.expected!=null? Math.max(0,+(b.expected-b.actual).toFixed(2)) : 0;
   const mondayOf=iso=>{const d=new Date(iso+'T12:00'); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.toISOString().slice(0,10);};
-  function tipSwitch(){ return `<div class="seg" role="tablist"><button type="button" role="tab" aria-selected="${S.tipView==='day'}" class="${S.tipView==='day'?'on':''}" data-tipview="day">Day</button><button type="button" role="tab" aria-selected="${S.tipView==='week'}" class="${S.tipView==='week'?'on':''}" data-tipview="week">Week (Mon–Sun)</button><button type="button" role="tab" aria-selected="${S.tipView==='owed'}" class="${S.tipView==='owed'?'on':''}" data-tipview="owed">Tips Owed${(()=>{const cw=mondayOf(new Date().toLocaleDateString('en-CA')); const t=S.bags.filter(b=>!b.paid&&owedOf(b)>0&&!/^Julio\b/i.test(b.server||'')&&mondayOf(b.date)===cw).reduce((a,b)=>a+owedOf(b),0); return t?` <span class="badge">${money(t,0)}</span>`:'';})()}</button>${S.isOwner?`<button type="button" role="tab" aria-selected="${S.tipView==='boh'}" class="${S.tipView==='boh'?'on':''}" data-tipview="boh">Kitchen Pool</button>`:''}</div>`; }
+  function tipSwitch(){ return `<div class="seg" role="tablist"><button type="button" role="tab" aria-selected="${S.tipView==='day'}" class="${S.tipView==='day'?'on':''}" data-tipview="day">Day</button><button type="button" role="tab" aria-selected="${S.tipView==='week'}" class="${S.tipView==='week'?'on':''}" data-tipview="week">Week (Mon–Sun)</button><button type="button" role="tab" aria-selected="${S.tipView==='owed'}" class="${S.tipView==='owed'?'on':''}" data-tipview="owed">Tips Owed${(()=>{const cw=mondayOf(new Date().toLocaleDateString('en-CA')); const t=S.bags.filter(b=>!b.paid&&owedOf(b)>0&&!/^Julio\b/i.test(b.server||'')&&mondayOf(b.date)===cw).reduce((a,b)=>a+owedOf(b),0); return t?` <span class="badge">${money(t,0)}</span>`:'';})()}</button>${S.isOwner?`<button type="button" role="tab" aria-selected="${S.tipView==='audit'}" class="${S.tipView==='audit'?'on':''}" data-tipview="audit">Tip Audit</button><button type="button" role="tab" aria-selected="${S.tipView==='boh'}" class="${S.tipView==='boh'?'on':''}" data-tipview="boh">Kitchen Pool</button>`:''}</div>`; }
+  // ---- Tip audit (Rick, Nov 24 2026): replaces the Tips 2026 spreadsheet. One doc per server shift in ownertipaudit (owners only). ----
+  const TA_COLS=[['foodSales','Food sales'],['expectedKitchen','Kitchen @3%'],['kitchen','Kitchen'],['runner','Runner'],['busser','Busser'],['bar','Bar'],['shiftReview','Shift Review'],['tips','Non-cash tips'],['variance','Variance'],['boh','BOH'],['difference','Difference']];
+  const taActual=r=>{ if(r.actual!=null&&r.actual!=='') return {v:+r.actual,src:'you'}; const b=S.bags.find(x=>x.id===bagId(r.date,r.person||r.crew||'')); return b&&b.actual!=null? {v:+b.actual,src:'bag'} : null; };
+  const taDiff=r=>{ const a=taActual(r); return a&&r.kitchen!=null&&Math.abs(a.v-(+r.kitchen||0))>=0.5 ? +(a.v-(+r.kitchen||0)).toFixed(2) : 0; };
+  function taOpen(){ const L=S.tipAudit||[]; if(!L.length) return 0; const cw=mondayOf(new Date().toLocaleDateString('en-CA')); const pw=bohAdd(cw,-7); return L.filter(r=>(r.week===cw||r.week===pw)&&!/^Julio\b/i.test(r.person||r.crew||'')&&r.countOk==null&&(+r.kitchen||0)>0).length; }
+  function taRows(wk){ return (S.tipAudit||[]).filter(r=>r.week===wk).sort((a,b)=>a.date.localeCompare(b.date)||(a.order??a.row??0)-(b.order??b.row??0)); }
+  function taCsv(list){ const head=['Date','Shift','Crew',...TA_COLS.map(c=>c[1]),'Count OK?','Actual','Off shift (info only)','Notes'];
+    const q=v=>{ const t=v==null?'':String(v); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; };
+    const lines=[head.join(',')].concat(list.map(r=>{ const a=taActual(r); return [r.date,r.shift||'',r.crew||r.person||'',...TA_COLS.map(c=>r[c[0]]??''),r.countOk===true?'Yes':r.countOk===false?'No':(r.countOk||''),a?a.v:'',(r.off||[]).join(' '),[(r.notes||[]).join('; '),r.dateFixed?`date was ${r.dateFixed.from} in the sheet (${r.dateFixed.why})`:''].filter(Boolean).join('; ')].map(q).join(','); }));
+    return lines.join('\r\n'); }
+  function taDownload(name,text){ const b=new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },500); }
+  function tipAudit(){ const L=S.tipAudit; const head=`<div><h1>Tip audit</h1><div class="sub">Every server shift: tip-outs, what Toast says, and your bag check. Replaces the Tips 2026 spreadsheet. Owners only.</div></div>`;
+    if(L==null) return head+'<div class="empty">Loading…</div>';
+    if(!L.length) return head+'<div class="empty">No tip audit rows yet.</div>';
+    const weeks=[...new Set(L.map(r=>r.week))].sort().reverse(); const T=S.ta; if(!T.wk||!weeks.includes(T.wk)) T.wk=weeks[0]; const wk=T.wk, end=bohAdd(wk,6);
+    const recent=weeks.slice(0,8); const pick=`<div class="wkpick scrollx no-print">${recent.map(w=>`<button type="button" class="${w===wk?'on':''}" data-tawk="${w}">${bohMD(w)}–${bohMD(bohAdd(w,6))}</button>`).join('')}${weeks.length>8?`<select class="tawsel" aria-label="Older weeks"><option value="">Older weeks…</option>${weeks.slice(8).map(w=>`<option value="${w}"${w===wk?' selected':''}>${bohMD(w)}–${bohMD(bohAdd(w,6))}/${w.slice(2,4)}</option>`).join('')}</select>`:''}</div>`;
+    const rows=taRows(wk); const cols=TA_COLS.filter(([k])=>rows.some(r=>r[k]!=null));
+    const dayL=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});
+    const f2=v=>v==null||v===''?'':(+v).toFixed(2).replace(/\.00$/,'');
+    const tot=k=>rows.reduce((a,r)=>a+(((r.off||[]).includes(k))?0:(+r[k]||0)),0);
+    const checked=rows.filter(r=>r.countOk!=null).length, need=rows.filter(r=>(+r.kitchen||0)>0&&!/^Julio\b/i.test(r.person||r.crew||'')).length;
+    const diffs=rows.filter(r=>taDiff(r));
+    let lastD='';
+    const body=rows.map(r=>{ const a=taActual(r), df=taDiff(r), nd=r.date!==lastD; lastD=r.date; const okv=r.countOk; const busy=T.saving[r.id];
+      const note=[...(r.notes||[]),r.dateFixed?`Date was ${r.dateFixed.from} in the sheet (${r.dateFixed.why}).`:''].filter(Boolean).join(' ');
+      return `${nd?`<tr class="grprow"><th colspan="${cols.length+3}"><span class="gname">${esc(dayL(r.date))}</span></th></tr>`:''}<tr class="${df?'hl':''}"><td>${esc(r.crew||r.person||'')}${r.shift?` <span class="note">${esc(r.shift)}</span>`:''}${note?` <span class="note" title="${esc(note)}">ⓘ</span>`:''}</td>${cols.map(([k])=>{ const off=(r.off||[]).includes(k); const v=r[k]; return `<td class="r${off?' taoff':''}${k==='variance'&&Math.abs(+v||0)>=0.5?' tavar':''}">${f2(v)}</td>`; }).join('')}
+        <td class="c"><span class="taokp">${okv===true?'✓':okv===false?'✗':''}</span><button type="button" class="taok ${okv===true?'yes':okv===false?'no':''}" data-taok="${esc(r.id)}" aria-label="Count OK for ${esc(r.crew||'')}: ${okv===true?'yes':okv===false?'no':'not checked'}"${busy?' disabled':''}>${okv===true?'✓':okv===false?'✗':'·'}</button></td>
+        <td class="r"><span class="taactp">${a?esc(f2(a.v)):''}</span><input class="ta-act" data-taact="${esc(r.id)}" inputmode="decimal" value="${r.actual!=null&&r.actual!==''?esc(r.actual):''}" placeholder="${a&&a.src==='bag'?esc(f2(a.v)):''}" aria-label="Actual kitchen cash in ${esc(r.crew||'')}'s bag"${busy?' disabled':''}>${df?`<div class="note tadf">${df>0?'+':''}${f2(df)}</div>`:''}</td></tr>`; }).join('');
+    const foot=`<tr><th>Total · ${rows.length} shift${rows.length===1?'':'s'}</th>${cols.map(([k])=>`<th class="r">${f2(+tot(k).toFixed(2))}</th>`).join('')}<th class="c">${checked}/${rows.length}</th><th class="r">${f2(+rows.reduce((a,r)=>{const x=taActual(r); return a+(x?x.v:0);},0).toFixed(2))}</th></tr>`;
+    const src=[...new Set(rows.map(r=>r.tab).filter(Boolean))];
+    const card=`<section class="card taprint"><h2>Week of ${esc(bohMD(wk))} – ${esc(bohMD(end))}/${wk.slice(2,4)}</h2>
+      <div class="note no-print">Tap the dot to mark a bag <b>✓ OK</b> or <b>✗ off</b> (tap again to clear). Type the kitchen cash you actually found under <b>Actual</b> only when it's different; gray numbers there are what staff counted in the app. Gray italic = role not on shift (info only, not in Variance).</div>
+      <div class="scroll tscroll"><table class="wide tatable vartable"><thead><tr><th>Crew</th>${cols.map(([,l])=>`<th class="r">${l}</th>`).join('')}<th class="c">Count OK?</th><th class="r">Actual</th></tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>
+      <div class="note">${need?`${rows.filter(r=>r.countOk!=null&&(+r.kitchen||0)>0).length} of ${need} bags checked. `:''}${diffs.length?`<b style="color:var(--warn)">${diffs.length} bag${diffs.length>1?'s':''} differ from the Kitchen amount:</b> ${diffs.map(r=>`${esc(r.crew||r.person)} ${esc(bohMD(r.date))} (${taDiff(r)>0?'+':''}${f2(taDiff(r))})`).join(', ')}.`:''}${src.length&&!rows.some(r=>r.src==='Toast')?` From the Tips 2026 spreadsheet (${src.map(esc).join(', ')}).`:''}</div>
+      <div class="bagbtns no-print"><button type="button" class="mini" data-taprint="1">Print</button><button type="button" class="mini" data-tacsv="week">Download week (Excel)</button><button type="button" class="mini" data-tacsv="all">Download all weeks</button></div><div class="msg note" id="tamsg" role="status"></div></section>`;
+    return head+pick+card; }
   // ---- Kitchen (BOH) tip pool (Rick, Nov 23 2026): owners enter the week's kitchen tips; split by payable hours × seniority tier ----
   const bohMon=d=>{ const x=new Date(d+'T12:00'); const k=(x.getDay()+6)%7; x.setDate(x.getDate()-k); return x.toLocaleDateString('en-CA'); };
   const bohAdd=(d,n)=>{ const x=new Date(d+'T12:00'); x.setDate(x.getDate()+n); return x.toLocaleDateString('en-CA'); };
@@ -1832,6 +1873,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(daily && !S.day){ m.innerHTML = `<div class="empty">${S.ok?'The first daily report lands here after the 5:23 AM audit.':'Loading the latest day…'}</div>`; return; }
     if(S.panel==='tipouts' && S.tipView==='week'){ m.innerHTML = tipSwitch() + tipWeek(); return; }
     if(S.panel==='tipouts' && S.tipView==='boh' && S.isOwner){ m.innerHTML = tipSwitch() + bohView(); return; }
+    if(S.panel==='tipouts' && S.tipView==='audit' && S.isOwner){ m.innerHTML = tipSwitch() + tipAudit(); return; }
     if(S.panel==='tipouts' && S.tipView==='owed'){ m.innerHTML = tipSwitch() + `<div><h1>Tips owed</h1><div class="sub">This week's short bags first, then any earlier week that still isn't paid</div></div>` + owedSummary(); return; }
     const dbar = (S.panel==='tipouts'? tipSwitch() : '') + (daily ? pillbar(S.days.map(d=>fmtDay(d)),'data-day',S.idx) : '');
     if(daily){ m.innerHTML = dbar + {glance:()=>glance(S.day),drawers:()=>drawers(S.day),tipouts:()=>tipouts(S.day),discounts:()=>discounts(S.day)}[S.panel](); return; }
@@ -1889,6 +1931,9 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     try{ await window.__db.collection(INV.pfx+'new').doc(id).set({id,n:name,g:g==='New / Other'?'New products':g,s:sz,...(vd?{v:vd}:{}),i,isNew:true,addedOn:INV.st.cur.date,addedIn:f.dataset.newprod,addedAt:new Date().toISOString()}); INV.st.adding=false; INV.st.q=''; INV.st.all=true; render(); setTimeout(()=>{const el=document.getElementById(`in-${f.dataset.newprod}-${id}`); el&&(el.scrollIntoView({block:'center'}),el.focus());},300); }
     catch(err){ alertBox("Couldn't add that product. Try again."); } });
   document.addEventListener('change',async e=>{ const t=e.target;
+    if(t.matches('.tawsel')){ if(t.value){ S.ta.wk=t.value; render(); } return; }
+    if(t.matches('.ta-act')){ const id=t.dataset.taact, raw=t.value.trim().replace(/[$,]/g,''); const v=raw===''?null:+raw; const m=document.getElementById('tamsg'); if(raw!==''&&(isNaN(v)||v<0)){ if(m) m.textContent='Enter a dollar amount, or leave it blank.'; return; }
+      const r=(S.tipAudit||[]).find(x=>x.id===id); if(r) r.actual=v; try{ await window.__db.collection('ownertipaudit').doc(id).update({actual:v, actualBy:S.meName||'', actualAt:new Date().toISOString()}); if(m) m.textContent='Saved.'; }catch(x){ if(m) m.textContent="Couldn't save. Only owners can change the tip audit."; } render(); return; }
     if(t.id==='tm-item'){ if(document.querySelector('[data-recform]')){ S.rec.draft=readRecForm(); } else if(document.querySelector('[data-frform]')){ S.frec.draft=readFrForm(); } render(); return; }
     if(t.closest('[data-sp],[data-exrow]')){ const was=!!S.rec.mods; S.rec.mods=readMods(); if(!was) render(); return; }
     if(t.matches('.ipar')){ const raw=t.value.trim().replace(',','.'); const v=raw===''?null:+raw; if(raw!==''&&(isNaN(v)||v<0)) return; INV.st.pars=INV.st.pars||{}; INV.st.pars[t.dataset.p]={par:v}; try{ await window.__db.collection(INV.pfx+'par').doc(t.dataset.p).set({par:v,updatedAt:new Date().toISOString()}); }catch(x){ alertBox("Couldn't save the par."); } render(); return; }
@@ -1938,6 +1983,11 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const cn=e.target.closest('[data-copynote]'); if(cn){ try{ await navigator.clipboard.writeText(cn.dataset.copynote); alertBox('Note copied. Paste it into a text or message.'); }catch(x){ alertBox('Copy not allowed here; press and hold the note text to copy it.'); } return; }
     const pd=e.target.closest('[data-paid]'); if(pd){markPaid(pd.dataset.paid); return;}
     const tv=e.target.closest('[data-tipview]'); if(tv){S.tipView=tv.dataset.tipview; render(); return;}
+    const taw=e.target.closest('[data-tawk]'); if(taw){ S.ta.wk=taw.dataset.tawk; render(); return; }
+    const tok=e.target.closest('[data-taok]'); if(tok){ const id=tok.dataset.taok, r=(S.tipAudit||[]).find(x=>x.id===id); if(!r) return; const nv=r.countOk===true?false:r.countOk===false?null:true; r.countOk=nv; S.ta.saving[id]=1; render();
+      try{ await window.__db.collection('ownertipaudit').doc(id).update({countOk:nv, checkedBy:S.meName||'', checkedAt:new Date().toISOString()}); }catch(x){ const m=document.getElementById('tamsg'); if(m) m.textContent="Couldn't save. Only owners can change the tip audit."; } delete S.ta.saving[id]; render(); return; }
+    if(e.target.closest('[data-taprint]')){ window.print(); return; }
+    const tcs=e.target.closest('[data-tacsv]'); if(tcs){ const all=tcs.dataset.tacsv==='all'; const list=all?(S.tipAudit||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)||(a.order??a.row??0)-(b.order??b.row??0)):taRows(S.ta.wk); taDownload(all?'Tip audit - all weeks.csv':`Tip audit - week of ${S.ta.wk}.csv`, taCsv(list)); return; }
     const bw=e.target.closest('[data-bohwk]'); if(bw){ S.boh.wk=bw.dataset.bohwk; S.boh.editing=false; render(); return; }
     const be=e.target.closest('[data-bohedit]'); if(be){ S.boh.editing=be.dataset.bohedit==='1'; render(); setTimeout(()=>{const i=document.getElementById('boh-pool'); i&&i.focus();},30); return; }
     const bp=e.target.closest('[data-bohpull]'); if(bp){ if(!S.isOwner) return; const me=window.__hqMe||{}; bp.disabled=true; try{ await window.__db.collection('ownerbohreq').doc('request').set({status:'pending',week:bp.dataset.bohpull,requestedBy:me.name||me.email||'',requestedAt:new Date().toISOString()}); }catch(x){ alertBox("Couldn't send the request. Check your connection."); } return; }
@@ -2083,6 +2133,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   else { try{ const s=await db.collection('days').limit(1).get(); S.full=s.docs.length>0; }catch(e){ S.full=false; } }
   S.limited=!S.full;
   try{ S.isOwner=!!(user&&user.isOwner()); }catch(e){ S.isOwner=false; }
+  try{ if(user&&user.me){ const mm=await user.me(); S.meName=(mm&&(mm.name||mm.email))||''; } }catch(e){}
   { const ab=document.querySelector('.admbtn'); if(ab) ab.hidden=!S.isOwner; }
   if(location.hash==='#admin') route();
   if(S.full){ S.fees={}; S.bands={}; db.collection('bandfees').onSnapshot(s=>{ S.fees={}; s.docs.forEach(d=>S.fees[d.id]=d.data()); if(S.panel==='events') render(); },()=>{}); db.collection('bands').onSnapshot(s=>{ S.bands={}; s.docs.forEach(d=>S.bands[d.id]={id:d.id,...d.data()}); window.__hqBands=S.bands; if(S.panel==='events') render(); },()=>{}); }
@@ -2105,7 +2156,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     db.collection('ownerbohtips').onSnapshot(s=>{ S.bohTips={}; s.docs.forEach(d=>S.bohTips[d.id]=d.data()); rr(); },()=>{});
     db.collection('ownerbohhours').onSnapshot(s=>{ S.bohHours={}; s.docs.forEach(d=>S.bohHours[d.id]=d.data()); rr(); },()=>{});
     db.doc('ownerbohroster/main').onSnapshot(s=>{ S.bohRoster=s.exists?(s.data().people||[]):[]; rr(); },()=>{});
-    db.doc('ownerbohreq/request').onSnapshot(s=>{ S.bohReq=s.exists?s.data():null; rr(); },()=>{}); }
+    db.doc('ownerbohreq/request').onSnapshot(s=>{ S.bohReq=s.exists?s.data():null; rr(); },()=>{});
+    db.collection('ownertipaudit').onSnapshot(s=>{ S.tipAudit=s.docs.map(d=>({id:d.id,...d.data()})); if(S.panel==='tipouts'&&!(document.activeElement&&document.activeElement.matches('.ta-act'))) render(); },()=>{ S.tipAudit=[]; }); }
   db.collection('tipweeks').onSnapshot(s=>{ S.tipHist={}; s.docs.forEach(d=>S.tipHist[d.id]=d.data()); if(S.panel==='tipouts') render(); }, ()=>{});
   db.collection('promoweeks').onSnapshot(s=>{ S.pweeks = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
   db.collection('drawercounts').onSnapshot(s=>{ S.dcounts = s.docs.map(d=>({id:d.id,...d.data()})); render(); }, ()=>{});
