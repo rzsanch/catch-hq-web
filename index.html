@@ -1015,7 +1015,10 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     db.doc('ownermenusales/last30').onSnapshot(s=>{ S.msales=s.exists?s.data():{}; rr(); },()=>{ S.msales={}; rr(); });
     db.doc('ownerfoodunits/map').onSnapshot(s=>{ S.fcUnits=s.exists?(s.data().items||{}):{}; rr(); },()=>{ S.fcUnits={}; rr(); });
     db.collection('ownerweekly').onSnapshot(s=>{ S.weekly=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.id.localeCompare(a.id)); rr(); },()=>{ S.weekly=[]; rr(); });
-    db.doc('ownerfoodnotes/current').onSnapshot(s=>{ S.fnotes=s.exists?s.data():{}; rr(); },()=>{ S.fnotes={}; rr(); }); }
+    db.doc('ownerfoodnotes/current').onSnapshot(s=>{ S.fnotes=s.exists?s.data():{}; rr(); },()=>{ S.fnotes={}; rr(); });
+    db.doc('ownerserverperf/weekly').onSnapshot(s=>{ S.sperf=s.exists?s.data():{}; rr(); },()=>{ S.sperf={}; rr(); });
+    db.doc('ownermailer/summary').onSnapshot(s=>{ S.mailer=s.exists?s.data():{}; rr(); },()=>{ S.mailer={}; rr(); }); }
+  const COSTAREAS=[['food','Food cost'],['bar','Bar cost'],['margin','Margins'],['perf','Servers & mailer'],['week','Weekly report']];
   const cMD=d=>d?bohMD(d):'–';
   const pct1=v=>v==null||!isFinite(v)?'–':(v*100).toFixed(1)+'%';
   const m0=v=>money(v,0), m2=v=>money(v,2);
@@ -1028,10 +1031,11 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   function costsView(){ const C=S.cost; const bar=C.area==='bar';
     if(C.area==='week') return weeklyView();
     if(C.area==='margin') return marginView();
+    if(C.area==='perf') return perfView();
     const tabs=bar?[['bsum','Summary'],['binv','Invoices'],['bprod','Products']]:[['sum','Summary'],['month','By month'],['inv','Invoices'],['price','Prices']];
     if(!tabs.some(t=>t[0]===C.tab)) C.tab=tabs[0][0];
     const head=`<div><h1>Owners</h1><div class="sub">${bar?'Bar cost from vendor invoices vs. Toast bar sales. Replaces the Deliveries, Products and Monthly tabs of Bar Weekly Count 2026.xlsx.':'Food cost from vendor invoices vs. Toast food sales. Replaces Food Cost.xlsx.'} Owners only.</div></div>`;
-    const area=`<div class="seg" role="tablist" aria-label="Section">${[['food','Food cost'],['bar','Bar cost'],['margin','Margins'],['week','Weekly report']].map(([k,l])=>`<button type="button" role="tab" aria-selected="${(C.area||'food')===k}" class="${(C.area||'food')===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
+    const area=`<div class="seg" role="tablist" aria-label="Section">${COSTAREAS.map(([k,l])=>`<button type="button" role="tab" aria-selected="${(C.area||'food')===k}" class="${(C.area||'food')===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
     const seg=`<div class="seg" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.tab===k}" class="${C.tab===k?'on':''}" data-costtab="${k}">${l}</button>`).join('')}</div>`;
     const top=head+`<div class="costsegs no-print">${area}${seg}</div>`;
     if(bar){ if(S.binv==null||S.bmonths==null) return top+'<div class="empty">Loading…</div>';
@@ -1176,7 +1180,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   function mgPlates(){ return Object.values(S.frecipes||{}).filter(r=>r.kind!=='batch').map(r=>{ const rc=mgRecipeCost(r.id,0); const t=r.toastId?(S.tmenu||[]).find(i=>i.id===r.toastId):null; const tp=t&&+t.price>0?+t.price:null; const dp=+r.price>0?+r.price:null; const price=tp||dp;
       const sl=mgSales([r.name,...(t?[t.name]:[])]); const shared=t?Object.values(S.frecipes||{}).filter(x=>x.kind!=='batch'&&x.toastId===r.toastId).length>1:false; return {shared,id:r.id,name:r.name,section:r.section||r.menu||'',price,mp:String(r.price||'').toUpperCase()==='MP',...rc,qty:sl.qty,net:sl.net,avg:sl.qty?sl.net/sl.qty:null,pct:rc.cost!=null&&price?rc.cost/price:null}; }); }
   const mgPctCell=v=>v==null?'–':`<span style="color:var(${v>0.35?'--bad,#c62828':v>0.28?'--warn':'--good'})"><b>${(v*100).toFixed(1)}%</b></span>`;
-  function marginView(){ const C=S.cost, M=S.mg; const area=`<div class="seg" role="tablist" aria-label="Section">${[['food','Food cost'],['bar','Bar cost'],['margin','Margins'],['week','Weekly report']].map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.area===k}" class="${C.area===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
+  function marginView(){ const C=S.cost, M=S.mg; const area=`<div class="seg" role="tablist" aria-label="Section">${COSTAREAS.map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.area===k}" class="${C.area===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
     const tabs=[['drinks','Drinks'],['plates','Plates'],['units','Food unit costs']]; const seg=`<div class="seg" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" aria-selected="${M.tab===k}" class="${M.tab===k?'on':''}" data-mgtab="${k}">${l}</button>`).join('')}</div>`;
     const head=`<div><h1>Owners</h1><div class="sub">What each drink and plate costs to make vs. what it sells for. Costs come from the recipes in the app and your latest invoice prices; sales are the last 30 days from Toast${S.msales&&S.msales.to?` (${esc(cMD(S.msales.from))}–${esc(cMD(S.msales.to))})`:''}. Replaces Spirits and Wine Inventory &amp; Margins.xlsx. Owners only.</div></div>`;
     const top=head+`<div class="costsegs no-print">${area}${seg}</div><div class="ifilters no-print"><input type="search" class="mgq" placeholder="Search" value="${esc(M.q)}" aria-label="Search"></div>`;
@@ -1241,7 +1245,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       if(!any){ blank++; if(blank>1) continue; rows+=`<tr class="wkgap"><td colspan="${lastCol}"></td></tr>`; continue; } blank=0;
       rows+=`<tr>${tds}</tr>`; }
     return `<div class="scroll wkscroll"><table class="wksheet">${cg}<tbody>${rows}</tbody></table></div>`; }
-  function weeklyView(){ const C=S.cost; const area=`<div class="seg" role="tablist" aria-label="Section">${[['food','Food cost'],['bar','Bar cost'],['margin','Margins'],['week','Weekly report']].map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.area===k}" class="${C.area===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
+  function weeklyView(){ const C=S.cost; const area=`<div class="seg" role="tablist" aria-label="Section">${COSTAREAS.map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.area===k}" class="${C.area===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
     const head=`<div><h1>Owners</h1><div class="sub">Weekly leadership report, built each Monday (replaces Server Analysis Performance.xlsx). Owners only; print it for the Tuesday meeting.</div></div>`;
     if(S.weekly==null) return head+`<div class="costsegs no-print">${area}</div><div class="empty">Loading…</div>`;
     if(!S.weekly.length) return head+`<div class="costsegs no-print">${area}</div><div class="empty">No weekly reports yet. The Monday task saves one here.</div>`;
@@ -1251,6 +1255,44 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const btns=`<div class="bagbtns no-print"><button type="button" class="mini" data-wk2print="one">Print this tab</button><button type="button" class="mini" data-wk2print="all">Print all tabs</button></div>`;
     const body=S.wk2.all? sheets.map(sh=>`<section class="wkpage"><h2>${esc(sh.name)}</h2>${wkSheet(sh,rep.styles||[])}</section>`).join('') : (sheets[S.wk2.tab]?`<section class="wkpage"><h2>${esc(sheets[S.wk2.tab].name)}</h2>${wkSheet(sheets[S.wk2.tab],rep.styles||[])}</section>`:'');
     return head+`<div class="costsegs no-print">${area}</div><div class="ifilters no-print">${wsel}</div>${W.summary?`<details class="card no-print"><summary><b>Claude's summary</b>${W.createdAt?` · ${esc(new Date(W.createdAt).toLocaleString('en-US',{weekday:'short',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}))}`:''}</summary><div class="note" style="white-space:pre-wrap">${esc(W.summary)}</div></details>`:''}<div class="no-print">${tabs}</div>${btns}<div class="costprint wkprint"><div class="wkprinthead">${esc(W.label||W.id)}</div>${body}</div>`; }
+
+  // ---- Servers & mailer (Rick, Nov 25 2026): SPLH/BSPLH trends and local mailer results straight from the Toast data in the database, refreshed every morning. Owners only. ----
+  function perfView(){ const C=S.cost; S.sp=S.sp||{week:'',metric:'bsplh'}; const P=S.sp;
+    const area=`<div class="seg" role="tablist" aria-label="Section">${COSTAREAS.map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.area===k}" class="${C.area===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
+    const D=S.sperf, M=S.mailer;
+    const head=`<div><h1>Owners</h1><div class="sub">Server sales per labor hour and local mailer results from the Toast data in the database, refreshed every morning${D&&D.through?` (through ${esc(cMD(D.through))})`:''}. Replaces the SPLH-BSPLH Trends and Local Mailer tabs. Owners only.</div></div>`;
+    if(D==null||M==null) return head+`<div class="costsegs no-print">${area}</div><div class="empty">Loading…</div>`;
+    const weeks=(D.weeks||[]).slice(); const people=D.people||[];
+    if(!weeks.length) return head+`<div class="costsegs no-print">${area}</div><div class="empty">No server data yet.</div>`;
+    const full=weeks.filter(w=>{ const e=new Date(w+'T12:00'); e.setDate(e.getDate()+6); return e.toLocaleDateString('en-CA')<=D.through; });
+    if(!weeks.includes(P.week)) P.week=full.length?full[full.length-1]:weeks[weeks.length-1];
+    const isFull=full.includes(P.week);
+    const wl=w=>{ const a=new Date(w+'T12:00'), b=new Date(a); b.setDate(b.getDate()+6); return `${a.getMonth()+1}/${a.getDate()}–${b.getMonth()+1}/${b.getDate()}`; };
+    const n2=v=>v==null?'–':money(v,2), vs=(v,a)=>{ if(v==null||a==null||!a) return '–'; const p=(v-a)/a; return `<span style="color:var(${p>=0?'--good':'--warn'})"><b>${p>=0?'▲':'▼'} ${Math.abs(p*100).toFixed(0)}%</b></span>`; };
+    const wsel=`<select class="spweek" aria-label="Week">${weeks.slice().reverse().map(w=>`<option value="${w}"${w===P.week?' selected':''}>Week of ${wl(w)}${full.includes(w)?'':' (so far)'}</option>`).join('')}</select>`;
+    const rows=people.map(p=>({p,x:(p.weeks||{})[P.week]})).filter(r=>r.x&&r.x.hours>0).sort((a,b)=>(b.x.bsplh||0)-(a.x.bsplh||0));
+    const tot=rows.reduce((a,r)=>({h:a.h+r.x.hours,n:a.n+r.x.net,b:a.b+r.x.bar}),{h:0,n:0,b:0});
+    const glance=`<section class="card"><h2>At a glance · week of ${wl(P.week)}${isFull?'':' (so far)'}</h2>
+      <div class="scroll"><table class="wide"><thead><tr><th>Server</th><th class="r">Hours</th><th class="r">Net sales</th><th class="r">SPLH</th><th class="r">BSPLH</th><th class="r">4-wk BSPLH</th><th class="r">Bar vs avg</th><th class="r">FSPLH</th><th class="r">4-wk FSPLH</th><th class="r">Food vs avg</th></tr></thead><tbody>
+      ${rows.map(({p,x})=>{ const a=p.avg4||{}; const low=x.hours<5; return `<tr><td>${esc(p.name)}</td><td class="r">${x.hours.toFixed(2)}</td><td class="r">${m0(x.net)}</td><td class="r">${n2(x.splh)}</td><td class="r"><b>${n2(x.bsplh)}</b></td><td class="r">${n2(a.bsplh)}</td><td class="r">${low?'<span class="note">N/A</span>':vs(x.bsplh,a.bsplh)}</td><td class="r"><b>${n2(x.fsplh)}</b></td><td class="r">${n2(a.fsplh)}</td><td class="r">${low?'<span class="note">N/A</span>':vs(x.fsplh,a.fsplh)}</td></tr>`; }).join('')||'<tr><td colspan="10">No server hours this week.</td></tr>'}
+      ${rows.length?`<tr class="total"><td>All servers</td><td class="r">${tot.h.toFixed(2)}</td><td class="r">${m0(tot.n)}</td><td class="r">${n2(tot.h?tot.n/tot.h:null)}</td><td class="r">${n2(tot.h?tot.b/tot.h:null)}</td><td></td><td></td><td class="r">${n2(tot.h?(tot.n-tot.b)/tot.h:null)}</td><td></td><td></td></tr>`:''}</tbody></table></div>
+      <div class="note">${esc(D.note||'')} vs avg is N/A under 5 hours. Bartenders naturally show lower FSPLH.</div></section>`;
+    const metrics=[['bsplh','BSPLH (bar per hour)'],['fsplh','FSPLH (food per hour)'],['splh','SPLH (all sales per hour)'],['hours','Hours'],['net','Net sales']];
+    const msel=`<select class="spmetric" aria-label="Measure">${metrics.map(([k,l])=>`<option value="${k}"${k===P.metric?' selected':''}>${l}</option>`).join('')}</select>`;
+    const show=weeks.slice(-8); const fmt=v=>v==null?'–':(P.metric==='hours'?(+v).toFixed(1):P.metric==='net'?m0(v):money(v,0));
+    const trend=`<section class="card"><h2>Trend · last ${show.length} weeks</h2><div class="ifilters no-print">${msel}</div><div class="scroll"><table class="wide"><thead><tr><th>Server</th>${show.map(w=>`<th class="r">${wl(w).split('–')[0]}${full.includes(w)?'':'*'}</th>`).join('')}</tr></thead><tbody>
+      ${people.filter(p=>show.some(w=>(p.weeks||{})[w])).map(p=>`<tr><td>${esc(p.name)}</td>${show.map(w=>{ const x=(p.weeks||{})[w]; return `<td class="r">${x&&x.hours>0?fmt(x[P.metric]):'–'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div><div class="note">Weeks start Monday. * = week still in progress.</div></section>`;
+    const mr=(M.rows||[]); const months=[...new Set(mr.map(r=>r.month))].sort(); const coupons=[...new Set(mr.map(r=>r.coupon))].sort();
+    const ml=k=>{ const [y,m]=k.split('-'); return new Date(+y,+m-1,15).toLocaleDateString('en-US',{month:'short',year:'numeric'}); };
+    const mt=mr.reduce((a,r)=>({u:a.u+r.uses,d:a.d+r.discount,n:a.n+r.net}),{u:0,d:0,n:0});
+    const mailer=`<section class="card"><h2>Local mailer & City Shopper coupons</h2>${mr.length?`<div class="tiles"><div class="tile"><div class="k">Uses</div><div class="n">${mt.u}</div></div><div class="tile"><div class="k">Discount given</div><div class="n">${m0(mt.d)}</div></div><div class="tile"><div class="k">Sales on those checks</div><div class="n">${m0(mt.n)}</div><div class="note">${mt.d?money(mt.n/mt.d,2)+' per $1 of discount':''}</div></div></div>
+      <div class="scroll"><table class="wide"><thead><tr><th>Month</th>${coupons.map(c=>`<th class="r">${esc(c.replace('LOCAL MAILER ','Mailer ').replace('CITY SHOPPER ','City Shopper '))}</th>`).join('')}<th class="r">Uses</th><th class="r">Discount</th><th class="r">Sales</th><th class="r">Avg check</th></tr></thead><tbody>
+      ${months.slice().reverse().map(m=>{ const R=mr.filter(r=>r.month===m); const u=R.reduce((a,r)=>a+r.uses,0), d=R.reduce((a,r)=>a+r.discount,0), n=R.reduce((a,r)=>a+r.net,0); return `<tr><td>${ml(m)}</td>${coupons.map(c=>{ const r=R.find(x=>x.coupon===c); return `<td class="r">${r?r.uses:'–'}</td>`; }).join('')}<td class="r"><b>${u}</b></td><td class="r">${m0(d)}</td><td class="r">${m0(n)}</td><td class="r">${u?money(n/u,2):'–'}</td></tr>`; }).join('')}
+      <tr class="total"><td>Total</td>${coupons.map(c=>`<td class="r">${mr.filter(r=>r.coupon===c).reduce((a,r)=>a+r.uses,0)}</td>`).join('')}<td class="r">${mt.u}</td><td class="r">${m0(mt.d)}</td><td class="r">${m0(mt.n)}</td><td class="r">${mt.u?money(mt.n/mt.u,2):'–'}</td></tr></tbody></table></div>`:'<div class="note">No coupon uses found.</div>'}
+      <div class="note">${esc(M.note||'')}${M.from?` Toast data from ${esc(new Date(M.from+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}))}.`:''}</div></section>`;
+    const btns=`<div class="bagbtns no-print"><button type="button" class="mini" data-spprint="1">Print</button><button type="button" class="mini" data-spcsv="1">Download (Excel)</button></div>`;
+    return head+`<div class="costsegs no-print">${area}</div><div class="ifilters no-print">${wsel}</div>${btns}<div class="costprint">${glance}${trend}${mailer}</div>`; }
+  function perfCsv(){ const D=S.sperf||{}; const rows=[]; (D.people||[]).forEach(p=>Object.entries(p.weeks||{}).forEach(([w,x])=>rows.push([p.name,w,x.hours,x.net,x.bar,x.food,x.splh,x.bsplh,x.fsplh]))); costCsv('Server SPLH.csv',['Server','Week of','Hours','Net sales','Bar sales','Food sales','SPLH','BSPLH','FSPLH'],rows); }
   // ---- Tip audit (Rick, Nov 24 2026): replaces the Tips 2026 spreadsheet. One doc per server shift in ownertipaudit (owners only). ----
   const TA_COLS=[['foodSales','Food sales'],['expectedKitchen','Kitchen @3%'],['kitchen','Kitchen'],['runner','Runner'],['busser','Busser'],['bar','Bar'],['shiftReview','Shift Review'],['tips','Non-cash tips'],['variance','Variance'],['boh','BOH'],['difference','Difference']];
   const taActual=r=>{ if(r.actual!=null&&r.actual!=='') return {v:+r.actual,src:'you'}; const b=S.bags.find(x=>x.id===bagId(r.date,r.person||r.crew||'')); return b&&b.actual!=null? {v:+b.actual,src:'bag'} : null; };
@@ -2196,6 +2238,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(t.matches('.mgsort')){ S.mg.sort=t.value; setTimeout(render,0); return; }
     if(t.matches('.bohold')){ if(t.value){ S.boh.wk=t.value; S.boh.editing=false; render(); } return; }
     if(t.matches('.wk2sel')){ S.wk2.id=t.value; S.wk2.tab=0; render(); return; }
+    if(t.matches('.spweek')){ S.sp.week=t.value; render(); return; }
+    if(t.matches('.spmetric')){ S.sp.metric=t.value; render(); return; }
     if(t.matches('[data-costf]')){ S.cost[t.dataset.costf]=t.value; S.cost.open=null; setTimeout(render,0); return; }
     if(t.matches('.costq')){ S.cost.q=t.value; S.cost.open=null; setTimeout(render,0); return; }
     if(t.matches('.tawsel')){ if(t.value){ S.ta.wk=t.value; render(); } return; }
@@ -2260,6 +2304,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       const items={...(S.fcUnits||{})}; if(cost>0) items[id]={cost,unit,by:me.name||me.email||'',at:new Date().toISOString()}; else delete items[id];
       try{ await window.__db.collection('ownerfoodunits').doc('map').set({items,updatedAt:new Date().toISOString()}); S.mg.editU=null; render(); }catch(x){ alertBox("Couldn't save. Check your connection."); } return; }
     const w2t=e.target.closest('[data-wk2tab]'); if(w2t){ S.wk2.tab=+w2t.dataset.wk2tab; render(); return; }
+    if(e.target.closest('[data-spprint]')){ window.print(); return; }
+    if(e.target.closest('[data-spcsv]')){ perfCsv(); return; }
     const w2p=e.target.closest('[data-wk2print]'); if(w2p){ if(w2p.dataset.wk2print==='all'){ S.wk2.all=true; render(); setTimeout(()=>{ window.print(); S.wk2.all=false; render(); },50); } else window.print(); return; }
     const car=e.target.closest('[data-costarea]'); if(car){ S.cost.area=car.dataset.costarea; S.cost.tab=''; S.cost.open=null; S.cost.q=''; S.cost.vendor=''; S.cost.month=''; render(); $('main').scrollTop=0; return; }
     const ccs=e.target.closest('[data-costcsv]'); if(ccs){ const k=ccs.dataset.costcsv; if(k.startsWith('mg')) mgCsv(k); else if(k[0]==='b') barCsv(k); else costCsvFor(k); return; }
