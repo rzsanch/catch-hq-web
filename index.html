@@ -152,11 +152,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       limit(n) { return Query(col, filters, n); },
       doc(id) { return Doc(col, id); },
       async get() {
-        let q = sb.from('docs').select('id,data').eq('collection', col);
-        for (const [f, op, v] of filters) { if (op === '==' || op === 'eq') q = q.eq('data->>' + f, String(v)); }
-        if (lim) q = q.limit(lim);
-        const { data, error } = await q;
-        if (error) throw error;
+        const mk = () => { let q = sb.from('docs').select('id,data').eq('collection', col); for (const [f, op, v] of filters) { if (op === '==' || op === 'eq') q = q.eq('data->>' + f, String(v)); } return q; };
+        let data;
+        if (lim) { const res = await mk().limit(lim); if (res.error) throw res.error; data = res.data; }
+        else { // the server returns at most 1000 rows per request: page through bigger collections (e.g. ownertipaudit)
+          data = [];
+          for (let a = 0; ; a += 1000) { const res = await mk().order('id').range(a, a + 999); if (res.error) throw res.error; data.push(...res.data); if (res.data.length < 1000) break; }
+        }
         const docs = data.map(r => docSnap(r.id, r.data));
         return { docs, size: docs.length, empty: !docs.length };
       },
