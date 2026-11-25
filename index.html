@@ -231,6 +231,22 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
   };
 
+  /* ---------- owners-only documents (Rick, Nov 25 2026): private bucket ownerdocs, owners only by storage policy ---------- */
+  window.__hqDocs = {
+    async upload(file) {
+      const safe = (file.name || 'file').replace(/[^a-z0-9.]+/gi, '-').toLowerCase();
+      const path = `${new Date().toISOString().slice(0, 10)}/${Date.now()}-${safe}`;
+      const { error } = await sb.storage.from('ownerdocs').upload(path, file, { contentType: file.type || 'application/octet-stream' });
+      if (error) throw error;
+      return path;
+    },
+    async url(path, download) {
+      const { data, error } = await sb.storage.from('ownerdocs').createSignedUrl(path, 600, download ? { download } : undefined);
+      if (error) throw error; return data.signedUrl;
+    },
+    async remove(path) { const { error } = await sb.storage.from('ownerdocs').remove([path]); if (error) throw error; }
+  };
+
   let readyResolve; const ready = new Promise(r => (readyResolve = r));
   window.claude = {
     use: async name => {
@@ -1017,8 +1033,9 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     db.collection('ownerweekly').onSnapshot(s=>{ S.weekly=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.id.localeCompare(a.id)); rr(); },()=>{ S.weekly=[]; rr(); });
     db.doc('ownerfoodnotes/current').onSnapshot(s=>{ S.fnotes=s.exists?s.data():{}; rr(); },()=>{ S.fnotes={}; rr(); });
     db.doc('ownerserverperf/weekly').onSnapshot(s=>{ S.sperf=s.exists?s.data():{}; rr(); },()=>{ S.sperf={}; rr(); });
+    db.collection('ownerdocs').onSnapshot(s=>{ S.odocs=s.docs.map(d=>({id:d.id,...d.data()})); rr(); },()=>{ S.odocs=[]; rr(); });
     db.doc('ownermailer/summary').onSnapshot(s=>{ S.mailer=s.exists?s.data():{}; rr(); },()=>{ S.mailer={}; rr(); }); }
-  const COSTAREAS=[['food','Food cost'],['bar','Bar cost'],['margin','Margins'],['perf','Servers & mailer'],['week','Weekly report']];
+  const COSTAREAS=[['food','Food cost'],['bar','Bar cost'],['margin','Margins'],['perf','Servers & mailer'],['week','Weekly report'],['docs','Documents']];
   const cMD=d=>d?bohMD(d):'–';
   const pct1=v=>v==null||!isFinite(v)?'–':(v*100).toFixed(1)+'%';
   const m0=v=>money(v,0), m2=v=>money(v,2);
@@ -1032,6 +1049,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(C.area==='week') return weeklyView();
     if(C.area==='margin') return marginView();
     if(C.area==='perf') return perfView();
+    if(C.area==='docs') return docsView();
     const tabs=bar?[['bsum','Summary'],['binv','Invoices'],['bprod','Products']]:[['sum','Summary'],['month','By month'],['inv','Invoices'],['price','Prices']];
     if(!tabs.some(t=>t[0]===C.tab)) C.tab=tabs[0][0];
     const head=`<div><h1>Owners</h1><div class="sub">${bar?'Bar cost from vendor invoices vs. Toast bar sales. Replaces the Deliveries, Products and Monthly tabs of Bar Weekly Count 2026.xlsx.':'Food cost from vendor invoices vs. Toast food sales. Replaces Food Cost.xlsx.'} Owners only.</div></div>`;
@@ -1293,6 +1311,32 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const btns=`<div class="bagbtns no-print"><button type="button" class="mini" data-spprint="1">Print</button><button type="button" class="mini" data-spcsv="1">Download (Excel)</button></div>`;
     return head+`<div class="costsegs no-print">${area}</div><div class="ifilters no-print">${wsel}</div>${btns}<div class="costprint">${glance}${trend}${mailer}</div>`; }
   function perfCsv(){ const D=S.sperf||{}; const rows=[]; (D.people||[]).forEach(p=>Object.entries(p.weeks||{}).forEach(([w,x])=>rows.push([p.name,w,x.hours,x.net,x.bar,x.food,x.splh,x.bsplh,x.fsplh]))); costCsv('Server SPLH.csv',['Server','Week of','Hours','Net sales','Bar sales','Food sales','SPLH','BSPLH','FSPLH'],rows); }
+
+  // ---- Documents (Rick, Nov 25 2026): internal docs (handbook, training, leadership decks) moved out of OptiSigns. Owners only: files in the private ownerdocs bucket, list in ownerdocs. ----
+  const DOCCATS=['Handbook & policies','Training','Leadership meetings','Contracts & vendors','Other'];
+  function docsView(){ const C=S.cost; S.od=S.od||{q:'',cat:'',msg:'',busy:false,confirm:null}; const O=S.od;
+    const area=`<div class="seg" role="tablist" aria-label="Section">${COSTAREAS.map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.area===k}" class="${C.area===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
+    const head=`<div><h1>Owners</h1><div class="sub">Internal documents (handbook, training, leadership decks). Only Rick and Dave can see or open these; links expire after 10 minutes.</div></div>`;
+    if(S.odocs==null) return head+`<div class="costsegs no-print">${area}</div><div class="empty">Loading…</div>`;
+    const q=mgNorm(O.q); const L=S.odocs.filter(d=>(!O.cat||d.category===O.cat)&&(!q||mgNorm((d.name||'')+' '+(d.note||'')).includes(q))).sort((a,b)=>(a.category||'').localeCompare(b.category||'')||(a.name||'').localeCompare(b.name||''));
+    const kb=n=>n==null?'':n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+    const up=`<section class="card no-print"><h2>Add a document</h2><form class="odform"><div class="ifilters"><input type="file" name="f" multiple aria-label="Choose files"><select name="cat" aria-label="Category">${DOCCATS.map(c=>`<option>${esc(c)}</option>`).join('')}</select><input name="note" placeholder="Note (optional)" aria-label="Note"><button type="submit" class="mini"${O.busy?' disabled':''}>${O.busy?'Uploading…':'Upload'}</button></div></form>${O.msg?`<div class="note">${esc(O.msg)}</div>`:''}</section>`;
+    const filt=`<div class="ifilters no-print"><input type="search" class="odq" placeholder="Search" value="${esc(O.q)}" aria-label="Search documents"><select class="odcat" aria-label="Category"><option value="">All categories</option>${DOCCATS.map(c=>`<option${O.cat===c?' selected':''}>${esc(c)}</option>`).join('')}</select></div>`;
+    const groups={}; L.forEach(d=>(groups[d.category||'Other']=groups[d.category||'Other']||[]).push(d));
+    const list=Object.keys(groups).length?Object.entries(groups).map(([c,ds])=>`<section class="card"><h2>${esc(c)} · ${ds.length}</h2><div class="scroll"><table class="wide"><thead><tr><th>Document</th><th>Note</th><th class="r">Size</th><th>Added</th><th class="no-print"></th></tr></thead><tbody>
+      ${ds.map(d=>`<tr><td><b>${esc(d.name)}</b></td><td>${esc(d.note||'')}</td><td class="r">${kb(d.size)}</td><td>${esc(d.uploadedAt?new Date(d.uploadedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'')}${d.uploadedBy?' · '+esc(d.uploadedBy):''}</td>
+      <td class="no-print"><span class="bagbtns"><button type="button" class="mini" data-odopen="${esc(d.id)}">Open</button><button type="button" class="mini" data-oddl="${esc(d.id)}">Download</button>${O.confirm===d.id?`<button type="button" class="mini" data-odrm="${esc(d.id)}" style="color:var(--warn)">Yes, remove</button><button type="button" class="mini" data-odcancel="1">Keep</button>`:`<button type="button" class="mini" data-odask="${esc(d.id)}">Remove</button>`}</span></td></tr>`).join('')}</tbody></table></div></section>`).join(''):`<div class="empty">${S.odocs.length?'Nothing matches.':'No documents yet. Add one above.'}</div>`;
+    return head+`<div class="costsegs no-print">${area}</div>${up}${filt}${list}`; }
+  async function docsUpload(form){ const O=S.od; const files=[...(form.f.files||[])]; if(!files.length){ O.msg='Pick a file first.'; render(); return; }
+    if(!window.__hqDocs){ O.msg='Uploads are not available here.'; render(); return; }
+    O.busy=true; O.msg=''; render(); let ok=0; const cat=form.cat.value, note=form.note.value.trim();
+    for(const f of files){ try{ if(f.size>50*1048576) throw new Error('over 50 MB'); const path=await window.__hqDocs.upload(f); const id=slug(path);
+        await window.__db.collection('ownerdocs').doc(id).set({name:f.name,path,size:f.size,type:f.type||'',category:cat,note,uploadedBy:(window.__hqMe&&window.__hqMe.name)||'',uploadedAt:new Date().toISOString()}); ok++; }
+      catch(e){ O.msg=`Couldn't upload ${f.name}: ${e.message||e}`; } }
+    O.busy=false; if(ok&&!O.msg) O.msg=`Added ${ok} document${ok>1?'s':''}.`; render(); }
+  async function docsOpen(id,dl){ const d=(S.odocs||[]).find(x=>x.id===id); if(!d) return; const w=dl?null:window.open('','_blank');
+    try{ const u=await window.__hqDocs.url(d.path, dl?d.name:undefined); if(w) w.location=u; else location.href=u; }catch(e){ if(w) w.close(); S.od.msg='Couldn\'t open it: '+(e.message||e); render(); } }
+  async function docsRemove(id){ const d=(S.odocs||[]).find(x=>x.id===id); if(!d) return; try{ await window.__hqDocs.remove(d.path); await window.__db.collection('ownerdocs').doc(id).delete(); S.od.msg=`Removed ${d.name}.`; }catch(e){ S.od.msg='Couldn\'t remove it: '+(e.message||e); } S.od.confirm=null; render(); }
   // ---- Tip audit (Rick, Nov 24 2026): replaces the Tips 2026 spreadsheet. One doc per server shift in ownertipaudit (owners only). ----
   const TA_COLS=[['foodSales','Food sales'],['expectedKitchen','Kitchen @3%'],['kitchen','Kitchen'],['runner','Runner'],['busser','Busser'],['bar','Bar'],['shiftReview','Shift Review'],['tips','Non-cash tips'],['variance','Variance'],['boh','BOH'],['difference','Difference']];
   const taActual=r=>{ if(r.actual!=null&&r.actual!=='') return {v:+r.actual,src:'you'}; const b=S.bags.find(x=>x.id===bagId(r.date,r.person||r.crew||'')); return b&&b.actual!=null? {v:+b.actual,src:'bag'} : null; };
@@ -2207,6 +2251,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(vv){ vv.addEventListener('resize',()=>setTimeout(unzoom,250)); vv.addEventListener('scroll',()=>{ if(vv.scale<=1.01&&(vv.offsetLeft||window.scrollX)) window.scrollTo(0,window.scrollY); }); }
     window.__setZoomLocal=v=>{ z=+v; apply(); };
   })();
+  document.addEventListener('submit',e=>{ const f=e.target.closest('.odform'); if(!f) return; e.preventDefault(); if(!S.isOwner) return; docsUpload(f); });
   document.addEventListener('submit',async e=>{ const f=e.target.closest('[data-frform]'); if(!f) return; e.preventDefault();
     const d=readFrForm(); if(!d.name) return; d.lines=(d.lines||[]).filter(l=>l.n||l.p||l.r);
     const id=S.frec.edit==='new'? (d.kind==='batch'?'b-':'m-')+recId(d.name) : S.frec.edit; if(S.frec.edit==='new'&&S.frecipes[id]){ alertBox('There is already one called '+d.name+'.'); return; }
@@ -2238,6 +2283,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     if(t.matches('.mgsort')){ S.mg.sort=t.value; setTimeout(render,0); return; }
     if(t.matches('.bohold')){ if(t.value){ S.boh.wk=t.value; S.boh.editing=false; render(); } return; }
     if(t.matches('.wk2sel')){ S.wk2.id=t.value; S.wk2.tab=0; render(); return; }
+    if(t.matches('.odq')){ S.od.q=t.value; setTimeout(render,0); return; }
+    if(t.matches('.odcat')){ S.od.cat=t.value; render(); return; }
     if(t.matches('.spweek')){ S.sp.week=t.value; render(); return; }
     if(t.matches('.spmetric')){ S.sp.metric=t.value; render(); return; }
     if(t.matches('[data-costf]')){ S.cost[t.dataset.costf]=t.value; S.cost.open=null; setTimeout(render,0); return; }
@@ -2304,6 +2351,11 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
       const items={...(S.fcUnits||{})}; if(cost>0) items[id]={cost,unit,by:me.name||me.email||'',at:new Date().toISOString()}; else delete items[id];
       try{ await window.__db.collection('ownerfoodunits').doc('map').set({items,updatedAt:new Date().toISOString()}); S.mg.editU=null; render(); }catch(x){ alertBox("Couldn't save. Check your connection."); } return; }
     const w2t=e.target.closest('[data-wk2tab]'); if(w2t){ S.wk2.tab=+w2t.dataset.wk2tab; render(); return; }
+    { const x=e.target.closest('[data-odopen]'); if(x){ docsOpen(x.dataset.odopen,false); return; } }
+    { const x=e.target.closest('[data-oddl]'); if(x){ docsOpen(x.dataset.oddl,true); return; } }
+    { const x=e.target.closest('[data-odask]'); if(x){ S.od.confirm=x.dataset.odask; render(); return; } }
+    if(e.target.closest('[data-odcancel]')){ S.od.confirm=null; render(); return; }
+    { const x=e.target.closest('[data-odrm]'); if(x){ docsRemove(x.dataset.odrm); return; } }
     if(e.target.closest('[data-spprint]')){ window.print(); return; }
     if(e.target.closest('[data-spcsv]')){ perfCsv(); return; }
     const w2p=e.target.closest('[data-wk2print]'); if(w2p){ if(w2p.dataset.wk2print==='all'){ S.wk2.all=true; render(); setTimeout(()=>{ window.print(); S.wk2.all=false; render(); },50); } else window.print(); return; }
