@@ -717,11 +717,14 @@ details.evt>summary .resdesc .what::after{content:""}
 .tatable td,.tatable th{white-space:nowrap}.tatable td.c,.tatable th.c{text-align:center}.tatable .taoff{color:#a6a6a6;font-style:italic}.tatable .tavar{color:var(--warn);font-weight:600}.taokp,.taactp{display:none}
 .costprint .tile .n{font-size:clamp(1.3rem,6.5vw,2rem);white-space:nowrap}.ifilters input.costq{min-width:0;width:100%;box-sizing:border-box}
 .costsegs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.wktabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.wktabs .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;color:var(--ink)}.wktabs .chip.on{background:var(--brand,#0f4c5c);color:#fff;border-color:transparent}
+.wksheet{border-collapse:collapse;table-layout:fixed;font-size:12px;background:#fff;color:#1f2933}.wksheet td{border:1px solid #e3e8ec;padding:3px 5px;vertical-align:top;overflow:hidden;text-overflow:ellipsis}.wksheet tr.wkgap td{border:0;height:8px;padding:0}.wksheet a{color:#0563c1}
+.wkscroll{overflow:auto;max-width:100%}.wkpage h2{margin:12px 0 6px}.wkprinthead{display:none}
 .costnotes{margin:6px 0 0 18px;padding:0}.costnotes li{margin:4px 0}
 .taok{min-width:34px;min-height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:700;color:var(--muted,#7b8794);cursor:pointer}.taok.yes{background:var(--good);border-color:var(--good);color:#fff}.taok.no{background:var(--warn);border-color:var(--warn);color:#fff}
 .ta-act{width:5.2em;text-align:right;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:inherit;font:inherit}.tadf{color:var(--warn);font-weight:600}
 .tawsel{margin-left:6px}
-@media print{body *{visibility:hidden}.costprint,.costprint *{visibility:visible}.costprint{position:absolute;left:0;right:0;top:0;width:auto}.costprint .card{margin:0 0 8px!important;max-width:none!important;width:auto!important}.costprint .card ul{padding-right:8px}.costprint .tscroll,.costprint .scroll{max-height:none!important;overflow:visible!important}.costprint .card{box-shadow:none;break-inside:avoid}.costprint table{font-size:9px;width:100%!important;min-width:0!important}.costprint th{letter-spacing:0!important;font-size:8px!important}.costprint td,.costprint th{padding:3px 5px!important;position:static!important}.taprint,.taprint *{visibility:visible}.taprint{position:absolute;left:0;top:0;width:100%;box-shadow:none;border:0;padding:0;margin:0}.taprint .no-print,.no-print{display:none!important}.taprint .tscroll{max-height:none!important;overflow:visible!important}.taprint .taok,.taprint .ta-act{display:none!important}.taprint .taokp,.taprint .taactp{display:inline}.taprint table{width:100%;font-size:10px;table-layout:auto}.taprint td,.taprint th{padding:3px 5px!important;position:static!important}.taprint tr{break-inside:avoid}.taprint h2{font-size:15px;margin:0 0 6px}@page{size:letter landscape;margin:.35in}}
+@media print{body *{visibility:hidden}.costprint,.costprint *{visibility:visible}.wkprint .wkprinthead{display:block;font-weight:700;margin-bottom:6px}.wkprint .wkpage{break-after:page}.wkprint .wkpage:last-child{break-after:auto}.wkprint .wksheet{font-size:8.5px;width:100%!important;table-layout:auto}.wkprint .wkscroll{overflow:visible!important}.costprint{position:absolute;left:0;right:0;top:0;width:auto}.costprint .card{margin:0 0 8px!important;max-width:none!important;width:auto!important}.costprint .card ul{padding-right:8px}.costprint .tscroll,.costprint .scroll{max-height:none!important;overflow:visible!important}.costprint .card{box-shadow:none;break-inside:avoid}.costprint table{font-size:9px;width:100%!important;min-width:0!important}.costprint th{letter-spacing:0!important;font-size:8px!important}.costprint td,.costprint th{padding:3px 5px!important;position:static!important}.taprint,.taprint *{visibility:visible}.taprint{position:absolute;left:0;top:0;width:100%;box-shadow:none;border:0;padding:0;margin:0}.taprint .no-print,.no-print{display:none!important}.taprint .tscroll{max-height:none!important;overflow:visible!important}.taprint .taok,.taprint .ta-act{display:none!important}.taprint .taokp,.taprint .taactp{display:inline}.taprint table{width:100%;font-size:10px;table-layout:auto}.taprint td,.taprint th{padding:3px 5px!important;position:static!important}.taprint tr{break-inside:avoid}.taprint h2{font-size:15px;margin:0 0 6px}@page{size:letter landscape;margin:.35in}}
 .dline{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px}.dline .dnum{white-space:nowrap;font-variant-numeric:tabular-nums}.dline.off .dnum{color:var(--warn)}
 .ptag{font-size:.8rem;color:var(--muted);white-space:nowrap}.ptag span{font-variant-numeric:tabular-nums}
 .nstag{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:1px 6px;border-radius:999px;background:var(--bad,#c62828);color:#fff;vertical-align:1px;white-space:nowrap}
@@ -897,7 +900,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     <a href="#events" data-p="events"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Events</a>
     <a href="#reservations" data-p="reservations"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Reserve</a>
     <a href="#inventory" data-p="inventory"><svg viewBox="0 0 24 24"><path d="M9 2h6M10 2v4l-3 4v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V10l-3-4V2M7 13h10"/></svg>Inventory</a>
-    <a href="#costs" data-p="costs" hidden><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16V10M10 16V6M14 16v-4M18 16V8"/><path d="M3 4l5 3 4-3 5 4 4-2"/></svg>Costs</a>
+    <a href="#costs" data-p="costs" hidden><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16V10M10 16V6M14 16v-4M18 16V8"/><path d="M3 4l5 3 4-3 5 4 4-2"/></svg>Owners</a>
     <a href="#clockins" data-p="clockins"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>Clock-ins</a>
   </nav>
 </div>
@@ -909,7 +912,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   const money = (n, c=2) => n==null||isNaN(n) ? '–' : '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:c,maximumFractionDigits:c});
   const PANELS = ['glance','drawers','tipouts','discounts','promos','events','reservations','inventory','clockins','costs','settings','admin'];
   const DAILY = ['glance','drawers','tipouts','discounts'];
-  const S = { boh:{wk:null,draft:{},editing:false,roster:null,rosterOpen:false}, ta:{wk:null,saving:{}}, tipAudit:null, cost:{area:'food',tab:'sum',vendor:'',q:'',open:null,month:'',subbed:false}, fcinv:null, binv:null, bmonths:null, bprod:null, fmonths:null, fnotes:null, bohTips:{}, bohHours:{}, bohRoster:null, bohReq:null, rep:{on:false,tab:'value'}, mq:{on:false,tab:'pending',f:'all',q:''}, rec:{on:false,kind:'bar',tab:'drinks',q:'',edit:null,draft:null,mods:null,confirmDel:false}, frec:{tab:'plate',q:'',edit:null,draft:null,confirmDel:false}, recipes:{}, recMods:[], frecipes:{}, tmenu:[], topts:[], menureqs:[], invKind:'bar', inv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'bar',q:'',all:false}, finv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'freezer',q:'',all:false}, dcounts:[], bags:[], editing:null, dayDocs:{}, tipView:'day', tipWk:0, days:[], idx:0, day:null, promos:null, pweeks:[], pw:0, evWhen:'up', resWhen:'up', other:null, events:[], clock:[], wk:0, panel:'glance', ok:false };
+  const S = { boh:{wk:null,draft:{},editing:false,roster:null,rosterOpen:false}, ta:{wk:null,saving:{}}, tipAudit:null, cost:{area:'food',tab:'sum',vendor:'',q:'',open:null,month:'',subbed:false}, fcinv:null, weekly:null, wk2:{id:null,tab:0}, binv:null, bmonths:null, bprod:null, fmonths:null, fnotes:null, bohTips:{}, bohHours:{}, bohRoster:null, bohReq:null, rep:{on:false,tab:'value'}, mq:{on:false,tab:'pending',f:'all',q:''}, rec:{on:false,kind:'bar',tab:'drinks',q:'',edit:null,draft:null,mods:null,confirmDel:false}, frec:{tab:'plate',q:'',edit:null,draft:null,confirmDel:false}, recipes:{}, recMods:[], frecipes:{}, tmenu:[], topts:[], menureqs:[], invKind:'bar', inv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'bar',q:'',all:false}, finv:{cat:[],hist:[],cur:null,entries:{},photos:[],view:'freezer',q:'',all:false}, dcounts:[], bags:[], editing:null, dayDocs:{}, tipView:'day', tipWk:0, days:[], idx:0, day:null, promos:null, pweeks:[], pw:0, evWhen:'up', resWhen:'up', other:null, events:[], clock:[], wk:0, panel:'glance', ok:false };
 
   function fmtDay(iso){ const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'}); }
   function longDay(iso){ const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }
@@ -1009,6 +1012,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     db.collection('ownerbarinv').onSnapshot(s=>{ S.binv=s.docs.map(d=>({id:d.id,...d.data()})); rr(); },()=>{ S.binv=[]; rr(); });
     db.collection('ownerbarmonth').onSnapshot(s=>{ S.bmonths={}; s.docs.forEach(d=>S.bmonths[d.id]=d.data()); rr(); },()=>{ S.bmonths={}; rr(); });
     db.doc('ownerbarprod/list').onSnapshot(s=>{ S.bprod=s.exists?(s.data().items||[]):[]; rr(); },()=>{ S.bprod=[]; rr(); });
+    db.collection('ownerweekly').onSnapshot(s=>{ S.weekly=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.id.localeCompare(a.id)); rr(); },()=>{ S.weekly=[]; rr(); });
     db.doc('ownerfoodnotes/current').onSnapshot(s=>{ S.fnotes=s.exists?s.data():{}; rr(); },()=>{ S.fnotes={}; rr(); }); }
   const cMD=d=>d?bohMD(d):'–';
   const pct1=v=>v==null||!isFinite(v)?'–':(v*100).toFixed(1)+'%';
@@ -1020,10 +1024,11 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     return Object.values(by).filter(o=>o.key>='2026-01').sort((a,b)=>a.key.localeCompare(b.key)).map(o=>({...o, m:M[o.key]||null, sales:M[o.key]?+M[o.key].sales||0:null})); }
   function costCsv(name,head,rows){ const q=v=>{ const t=v==null?'':String(v); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }; taDownload(name,[head,...rows].map(r=>r.map(q).join(',')).join('\r\n')); }
   function costsView(){ const C=S.cost; const bar=C.area==='bar';
+    if(C.area==='week') return weeklyView();
     const tabs=bar?[['bsum','Summary'],['binv','Invoices'],['bprod','Products']]:[['sum','Summary'],['month','By month'],['inv','Invoices'],['price','Prices']];
     if(!tabs.some(t=>t[0]===C.tab)) C.tab=tabs[0][0];
-    const head=`<div><h1>Costs</h1><div class="sub">${bar?'Bar cost from vendor invoices vs. Toast bar sales. Replaces the Deliveries, Products and Monthly tabs of Bar Weekly Count 2026.xlsx.':'Food cost from vendor invoices vs. Toast food sales. Replaces Food Cost.xlsx.'} Owners only.</div></div>`;
-    const area=`<div class="seg" role="tablist" aria-label="Food or bar">${[['food','Food'],['bar','Bar']].map(([k,l])=>`<button type="button" role="tab" aria-selected="${(C.area||'food')===k}" class="${(C.area||'food')===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
+    const head=`<div><h1>Owners</h1><div class="sub">${bar?'Bar cost from vendor invoices vs. Toast bar sales. Replaces the Deliveries, Products and Monthly tabs of Bar Weekly Count 2026.xlsx.':'Food cost from vendor invoices vs. Toast food sales. Replaces Food Cost.xlsx.'} Owners only.</div></div>`;
+    const area=`<div class="seg" role="tablist" aria-label="Section">${[['food','Food cost'],['bar','Bar cost'],['week','Weekly report']].map(([k,l])=>`<button type="button" role="tab" aria-selected="${(C.area||'food')===k}" class="${(C.area||'food')===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
     const seg=`<div class="seg" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.tab===k}" class="${C.tab===k?'on':''}" data-costtab="${k}">${l}</button>`).join('')}</div>`;
     const top=head+`<div class="costsegs no-print">${area}${seg}</div>`;
     if(bar){ if(S.binv==null||S.bmonths==null) return top+'<div class="empty">Loading…</div>';
@@ -1118,6 +1123,52 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
   function barCsv(kind){ if(kind==='bsum'){ const ms=barMonths(); costCsv('Bar cost by month.csv',['Month',...BSALES.map(([,l])=>l+' sales'),'Total sales',...BARCATS,'Purchases','Pour cost %','Notes'],ms.map(m=>[m.m?m.m.label:m.key,...BSALES.map(([k])=>m.m?m.m[k]:''),m.sales??'',...BARCATS.map(c=>(m.cats[c]||0).toFixed(2)),m.tot.toFixed(2),m.sales?(m.tot/m.sales*100).toFixed(1)+'%':'',m.m?m.m.notes||'':''])); return; }
     if(kind==='binv'){ const rows=[]; barInvList().slice().reverse().forEach(d=>(d.lines||[]).forEach(l=>rows.push([d.date,d.vendor,d.invoice||'',l.n||'',l.i||'',l.s||'',l.b??'',l.a,+l.b>0?(l.a/l.b).toFixed(2):'',l.p||'',l.c||'',l.x||'']))); costCsv('Bar deliveries.csv',['Date','Vendor','Invoice #','Invoice item','Item #','Size','Bottles / kegs','Net $','Cost per bottle $','Count-sheet product','Category','Note'],rows); return; }
     if(kind==='bprod'){ costCsv('Bar products.csv',['Product','Type','Size','Bottle/Keg oz','Cost ($)','Cost per oz ($)','Pour oz','Vendor','Toast menu items','Cost source','Cost last updated'],barProdRows().map(p=>[p.n,p.t||'',p.s||'',p.oz??'',p.cost??'',+p.oz>0&&+p.cost>0?(p.cost/p.oz).toFixed(3):'',p.pour??'',p.v||'',p.toast||'',p.src||'',p.d||''])); } }
+  // ---- Weekly leadership report (Rick, Nov 24 2026): the Monday "Server Analysis Performance" workbook, saved into the app instead of Excel. Owners only. ----
+  const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function wkFmt(v,st){ const nf=(st&&st.nf)||'';
+    if(v==null) return '';
+    if(typeof v==='object'){ if(v.t){ const [h,m]=v.t.split(':').map(Number); return ((h%12)||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM'); }
+      if(v.d){ const x=new Date(v.d.length<=10?v.d+'T12:00':v.d); if(isNaN(x)) return v.d; const md=(x.getMonth()+1)+'/'+x.getDate();
+        if(/ddd/.test(nf)) return WD[x.getDay()]+' '+md; if(/Week of/.test(nf)) return 'Week of '+md+'/'+String(x.getFullYear()).slice(2);
+        if(/d-mmm/.test(nf)) return x.getDate()+'-'+x.toLocaleDateString('en-US',{month:'short'}); if(/m\/d\/yy/.test(nf)) return md+'/'+String(x.getFullYear()).slice(2);
+        if(/h:mm/.test(nf)&&v.d.length>10) return x.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        if(/m\/d/.test(nf)) return md; return md+'/'+x.getFullYear(); }
+      return ''; }
+    if(typeof v==='number'){
+      if(/%/.test(nf)){ const dec=/0\.0/.test(nf)?1:0; const t=(v*100).toFixed(dec)+'%'; return /\+0/.test(nf)&&v>0?'+'+t:t; }
+      if(/\$/.test(nf)){ const dec=/0\.00/.test(nf)?2:0; const t='$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); return v<0?(/\(/.test(nf)?'('+t+')':'-'+t):t; }
+      if(nf==='0') return String(Math.round(v)); if(/#,##0/.test(nf)&&!/\./.test(nf)) return Math.round(v).toLocaleString('en-US');
+      if(nf==='0.00') return v.toFixed(2);
+      return Number.isInteger(v)?v.toLocaleString('en-US'):(Math.round(v*100)/100).toLocaleString('en-US'); }
+    if(typeof v==='boolean') return v?'Yes':'No';
+    return String(v); }
+  function wkColNum(s){ let n=0; for(const ch of s) n=n*26+ch.charCodeAt(0)-64; return n; }
+  function wkColL(n){ let s=''; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26); } return s; }
+  function wkSheet(sh,styles){ const R=sh.maxRow||0, Cn=sh.maxCol||0; const cells=sh.cells||{}; const skip=new Set(), span={};
+    (sh.merges||[]).forEach(m=>{ const mm=/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(m); if(!mm) return; const c1=wkColNum(mm[1]),r1=+mm[2],c2=wkColNum(mm[3]),r2=+mm[4]; span[mm[1]+r1]=[r2-r1+1,c2-c1+1]; for(let r=r1;r<=r2;r++) for(let c=c1;c<=c2;c++) if(r!==r1||c!==c1) skip.add(wkColL(c)+r); });
+    let lastCol=0; Object.keys(cells).forEach(k=>{ const c=wkColNum(k.replace(/\d+/g,'')); const sp=span[k]; const e=c+(sp?sp[1]-1:0); if(cells[k][0]!=null&&cells[k][0]!=='') lastCol=Math.max(lastCol,e); }); lastCol=Math.min(Math.max(lastCol,1),Cn||lastCol);
+    const W=sh.widths||{}; let cg='<colgroup>'; for(let c=1;c<=lastCol;c++){ const w=W[wkColL(c)]; cg+=`<col style="width:${Math.round(((w==null?8.43:w))*7+5)}px">`; } cg+='</colgroup>';
+    let rows=''; let blank=0;
+    for(let r=1;r<=R;r++){ let tds='', any=false;
+      for(let c=1;c<=lastCol;c++){ const ref=wkColL(c)+r; if(skip.has(ref)) continue; const cv=cells[ref]; const st=cv&&cv.length>1?styles[cv[1]]||{}:{}; const v=cv?cv[0]:null; const txt=wkFmt(v,st); if(txt!==''||st.bg) any=true;
+        const sp=span[ref]; const css=[]; if(st.b) css.push('font-weight:700'); if(st.i) css.push('font-style:italic'); if(st.fg) css.push('color:#'+st.fg); if(st.bg) css.push('background:#'+st.bg); if(st.sz&&st.sz!==11) css.push('font-size:'+(st.sz/11).toFixed(2)+'em'); if(st.w) css.push('white-space:pre-wrap'); else css.push('white-space:pre-line');
+        const num=typeof v==='number'||(v&&typeof v==='object'); const al=st.al==='c'?'center':st.al==='r'||num?'right':'';
+        if(al) css.push('text-align:'+al);
+        const inner=st.href&&txt?`<a href="${esc(st.href)}" target="_blank" rel="noopener">${esc(txt)}</a>`:esc(txt);
+        tds+=`<td${sp?` rowspan="${sp[0]}" colspan="${sp[1]}"`:''}${css.length?` style="${css.join(';')}"`:''}>${inner}</td>`; }
+      if(!any){ blank++; if(blank>1) continue; rows+=`<tr class="wkgap"><td colspan="${lastCol}"></td></tr>`; continue; } blank=0;
+      rows+=`<tr>${tds}</tr>`; }
+    return `<div class="scroll wkscroll"><table class="wksheet">${cg}<tbody>${rows}</tbody></table></div>`; }
+  function weeklyView(){ const C=S.cost; const area=`<div class="seg" role="tablist" aria-label="Section">${[['food','Food cost'],['bar','Bar cost'],['week','Weekly report']].map(([k,l])=>`<button type="button" role="tab" aria-selected="${C.area===k}" class="${C.area===k?'on':''}" data-costarea="${k}">${l}</button>`).join('')}</div>`;
+    const head=`<div><h1>Owners</h1><div class="sub">Weekly leadership report, built each Monday (replaces Server Analysis Performance.xlsx). Owners only; print it for the Tuesday meeting.</div></div>`;
+    if(S.weekly==null) return head+`<div class="costsegs no-print">${area}</div><div class="empty">Loading…</div>`;
+    if(!S.weekly.length) return head+`<div class="costsegs no-print">${area}</div><div class="empty">No weekly reports yet. The Monday task saves one here.</div>`;
+    const W=S.weekly.find(w=>w.id===S.wk2.id)||S.weekly[0]; S.wk2.id=W.id; const rep=W.report||{sheets:[],styles:[]}; const sheets=rep.sheets||[]; if(S.wk2.tab>=sheets.length) S.wk2.tab=0;
+    const wsel=`<select class="wk2sel" aria-label="Week">${S.weekly.map(w=>`<option value="${esc(w.id)}"${w.id===W.id?' selected':''}>${esc(w.label||('Week of '+w.id))}</option>`).join('')}</select>`;
+    const tabs=`<div class="wktabs" role="tablist">${sheets.map((sh,i)=>`<button type="button" role="tab" aria-selected="${i===S.wk2.tab}" class="chip${i===S.wk2.tab?' on':''}" data-wk2tab="${i}">${esc(sh.name)}</button>`).join('')}</div>`;
+    const btns=`<div class="bagbtns no-print"><button type="button" class="mini" data-wk2print="one">Print this tab</button><button type="button" class="mini" data-wk2print="all">Print all tabs</button></div>`;
+    const body=S.wk2.all? sheets.map(sh=>`<section class="wkpage"><h2>${esc(sh.name)}</h2>${wkSheet(sh,rep.styles||[])}</section>`).join('') : (sheets[S.wk2.tab]?`<section class="wkpage"><h2>${esc(sheets[S.wk2.tab].name)}</h2>${wkSheet(sheets[S.wk2.tab],rep.styles||[])}</section>`:'');
+    return head+`<div class="costsegs no-print">${area}</div><div class="ifilters no-print">${wsel}</div>${W.summary?`<details class="card no-print"><summary><b>Claude's summary</b>${W.createdAt?` · ${esc(new Date(W.createdAt).toLocaleString('en-US',{weekday:'short',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}))}`:''}</summary><div class="note" style="white-space:pre-wrap">${esc(W.summary)}</div></details>`:''}<div class="no-print">${tabs}</div>${btns}<div class="costprint wkprint"><div class="wkprinthead">${esc(W.label||W.id)}</div>${body}</div>`; }
   // ---- Tip audit (Rick, Nov 24 2026): replaces the Tips 2026 spreadsheet. One doc per server shift in ownertipaudit (owners only). ----
   const TA_COLS=[['foodSales','Food sales'],['expectedKitchen','Kitchen @3%'],['kitchen','Kitchen'],['runner','Runner'],['busser','Busser'],['bar','Bar'],['shiftReview','Shift Review'],['tips','Non-cash tips'],['variance','Variance'],['boh','BOH'],['difference','Difference']];
   const taActual=r=>{ if(r.actual!=null&&r.actual!=='') return {v:+r.actual,src:'you'}; const b=S.bags.find(x=>x.id===bagId(r.date,r.person||r.crew||'')); return b&&b.actual!=null? {v:+b.actual,src:'bag'} : null; };
@@ -2057,6 +2108,7 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     try{ await window.__db.collection(INV.pfx+'new').doc(id).set({id,n:name,g:g==='New / Other'?'New products':g,s:sz,...(vd?{v:vd}:{}),i,isNew:true,addedOn:INV.st.cur.date,addedIn:f.dataset.newprod,addedAt:new Date().toISOString()}); INV.st.adding=false; INV.st.q=''; INV.st.all=true; render(); setTimeout(()=>{const el=document.getElementById(`in-${f.dataset.newprod}-${id}`); el&&(el.scrollIntoView({block:'center'}),el.focus());},300); }
     catch(err){ alertBox("Couldn't add that product. Try again."); } });
   document.addEventListener('change',async e=>{ const t=e.target;
+    if(t.matches('.wk2sel')){ S.wk2.id=t.value; S.wk2.tab=0; render(); return; }
     if(t.matches('[data-costf]')){ S.cost[t.dataset.costf]=t.value; S.cost.open=null; setTimeout(render,0); return; }
     if(t.matches('.costq')){ S.cost.q=t.value; S.cost.open=null; setTimeout(render,0); return; }
     if(t.matches('.tawsel')){ if(t.value){ S.ta.wk=t.value; render(); } return; }
@@ -2114,6 +2166,8 @@ main,.ctrls,header,nav.tabs{box-sizing:border-box;width:100%}
     const ctb=e.target.closest('[data-costtab]'); if(ctb){ S.cost.tab=ctb.dataset.costtab; S.cost.open=null; S.cost.q=''; render(); $('main').scrollTop=0; return; }
     const cop=e.target.closest('[data-costopen]'); if(cop){ S.cost.open=S.cost.open===cop.dataset.costopen?null:cop.dataset.costopen; render(); return; }
     if(e.target.closest('[data-costprint]')){ window.print(); return; }
+    const w2t=e.target.closest('[data-wk2tab]'); if(w2t){ S.wk2.tab=+w2t.dataset.wk2tab; render(); return; }
+    const w2p=e.target.closest('[data-wk2print]'); if(w2p){ if(w2p.dataset.wk2print==='all'){ S.wk2.all=true; render(); setTimeout(()=>{ window.print(); S.wk2.all=false; render(); },50); } else window.print(); return; }
     const car=e.target.closest('[data-costarea]'); if(car){ S.cost.area=car.dataset.costarea; S.cost.tab=''; S.cost.open=null; S.cost.q=''; S.cost.vendor=''; S.cost.month=''; render(); $('main').scrollTop=0; return; }
     const ccs=e.target.closest('[data-costcsv]'); if(ccs){ const k=ccs.dataset.costcsv; if(k[0]==='b') barCsv(k); else costCsvFor(k); return; }
     const taw=e.target.closest('[data-tawk]'); if(taw){ S.ta.wk=taw.dataset.tawk; render(); return; }
